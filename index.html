@@ -1,1101 +1,800 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NGSL 词汇表 · 词典查询</title>
-    <style>
-        /* ===== 全局变量 ===== */
-        :root {
-            --bg: #faf7f1;
-            --surface: #fffdf8;
-            --surface-hover: #f5efdf;
-            --text: #2b2b2b;
-            --text-light: #666;
-            --primary: #1f6f5c;
-            --primary-light: #e6f2ee;
-            --accent: #c98a2b;
-            --border: #e0d8c8;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --radius: 8px;
-            --font: system-ui, -apple-system, sans-serif;
-            --font-serif: Georgia, 'Times New Roman', serif;
-        }
-
-        [data-theme="dark"] {
-            --bg: #1a1a1a;
-            --surface: #252525;
-            --surface-hover: #303030;
-            --text: #e0e0e0;
-            --text-light: #999;
-            --primary: #3eb094;
-            --primary-light: #2a3f38;
-            --accent: #e0a84b;
-            --border: #333;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        /* ===== 重置 & 基础 ===== */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: var(--font);
-            background-color: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* ===== 头部 ===== */
-        header {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 14px;
-            padding-bottom: 14px;
-            border-bottom: 2px solid var(--border);
-        }
-
-        h1 {
-            font-family: var(--font-serif);
-            color: var(--primary);
-            font-size: clamp(1.4rem, 3.8vw, 2.1rem);
-            font-weight: 700;
-        }
-
-        h1 span {
-            color: var(--accent);
-            font-size: 0.6em;
-            font-weight: normal;
-            margin-left: 8px;
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        input[type="text"],
-        select {
-            padding: 7px 12px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background-color: var(--surface);
-            color: var(--text);
-            font-size: 0.95rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input[type="text"]:focus,
-        select:focus {
-            border-color: var(--primary);
-        }
-
-        .search-box {
-            position: relative;
-        }
-
-        .search-box input {
-            width: clamp(160px, 28vw, 280px);
-            padding-left: 34px;
-        }
-
-        .search-box::before {
-            content: "🔍";
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 0.9rem;
-            opacity: 0.6;
-        }
-
-        .btn-icon,
-        .btn-text {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            color: var(--text);
-            padding: 7px 14px;
-            gap: 4px;
-            white-space: nowrap;
-        }
-
-        .btn-icon {
-            width: 38px;
-            height: 38px;
-            font-size: 1.1rem;
-            padding: 0;
-        }
-
-        .btn-icon:hover,
-        .btn-text:hover {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-
-        /* ===== 状态栏 ===== */
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 12px;
-            padding: 6px 14px;
-            background: var(--surface);
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            font-size: 0.9rem;
-            color: var(--text-light);
-            min-height: 44px;
-        }
-
-        .status-bar .count {
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .status-bar .hint {
-            font-size: 0.85rem;
-        }
-
-        .status-bar .hint kbd {
-            background: var(--border);
-            padding: 1px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-family: inherit;
-        }
-
-        /* ===== 表格容器 ===== */
-        .table-container {
-            background: var(--surface);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 680px;
-        }
-
-        th,
-        td {
-            padding: 10px 14px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-
-        thead th {
-            background-color: var(--primary-light);
-            color: var(--primary);
-            font-weight: 600;
-            cursor: pointer;
-            user-select: none;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            transition: background 0.15s, color 0.15s;
-        }
-
-        [data-theme="dark"] thead th {
-            background-color: var(--surface);
-            border-bottom: 2px solid var(--primary);
-        }
-
-        thead th:hover {
-            background-color: var(--primary);
-            color: #fff;
-        }
-
-        tbody tr {
-            transition: background-color 0.1s;
-            cursor: pointer;
-        }
-
-        tbody tr:hover {
-            background-color: var(--surface-hover);
-        }
-
-        .word-cell {
-            font-weight: 600;
-            color: var(--primary);
-            font-size: 1.05rem;
-        }
-
-        .forms-cell {
-            color: var(--text-light);
-            font-size: 0.85rem;
-            font-style: italic;
-        }
-
-        /* SFI 进度条 */
-        .sfi-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .sfi-track {
-            width: 60px;
-            height: 6px;
-            background: var(--border);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .sfi-fill {
-            height: 100%;
-            background: var(--accent);
-            border-radius: 3px;
-            transition: width 0.2s;
-        }
-
-        .sfi-val {
-            font-size: 0.85rem;
-            color: var(--text-light);
-            width: 40px;
-            text-align: right;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.15rem;
-            transition: transform 0.1s;
-            color: var(--text-light);
-            padding: 2px 6px;
-        }
-
-        .action-btn:hover {
-            transform: scale(1.25);
-        }
-
-        .fav-active {
-            color: #e74c3c;
-        }
-
-        /* ===== 分页 ===== */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .page-btn {
-            padding: 6px 14px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            cursor: pointer;
-            color: var(--text);
-            transition: all 0.2s;
-            font-size: 0.9rem;
-        }
-
-        .page-btn:hover:not(:disabled) {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-
-        .page-btn.active {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-
-        .page-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .page-info {
-            color: var(--text-light);
-            font-size: 0.9rem;
-            margin: 0 8px;
-        }
-
-        /* ===== 空状态 ===== */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-light);
-        }
-
-        .empty-state h2 {
-            color: var(--text);
-            margin-bottom: 10px;
-        }
-
-        .empty-state .icon {
-            font-size: 3rem;
-            margin-bottom: 12px;
-        }
-
-        /* ===== 弹窗 ===== */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            padding: 20px;
-            backdrop-filter: blur(3px);
-        }
-
-        .modal-overlay.active {
-            display: flex;
-            animation: fadeIn 0.2s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        .modal {
-            background: var(--bg);
-            border-radius: 12px;
-            width: 100%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            padding: 32px;
-            position: relative;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(20px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 14px;
-            right: 18px;
-            background: transparent;
-            border: none;
-            font-size: 1.6rem;
-            cursor: pointer;
-            color: var(--text-light);
-            line-height: 1;
-        }
-
-        .modal h2 {
-            font-family: var(--font-serif);
-            color: var(--primary);
-            margin-bottom: 2px;
-            font-size: 2rem;
-        }
-
-        .phonetic {
-            color: var(--accent);
-            font-size: 1.1rem;
-            margin-bottom: 20px;
-            font-style: italic;
-        }
-
-        .dict-section {
-            margin-bottom: 18px;
-            border-left: 3px solid var(--primary);
-            padding-left: 16px;
-        }
-
-        .pos {
-            font-weight: 600;
-            color: var(--primary);
-            font-size: 0.9rem;
-            font-style: italic;
-            margin-bottom: 6px;
-        }
-
-        .definition {
-            margin-bottom: 6px;
-            padding-left: 12px;
-            position: relative;
-        }
-
-        .definition::before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: var(--accent);
-        }
-
-        .example {
-            font-size: 0.9rem;
-            color: var(--text-light);
-            font-style: italic;
-            margin-top: 2px;
-            padding-left: 12px;
-        }
-
-        .loader {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-light);
-        }
-
-        .loader div {
-            border: 4px solid var(--border);
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 12px;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .error-msg {
-            text-align: center;
-            color: #e74c3c;
-            padding: 20px;
-        }
-
-        /* ===== 页脚 ===== */
-        footer {
-            text-align: center;
-            margin-top: 32px;
-            color: var(--text-light);
-            font-size: 0.85rem;
-        }
-
-        /* ===== 响应式 ===== */
-        @media (max-width: 600px) {
-            .container {
-                padding: 10px;
-            }
-
-            .modal {
-                padding: 20px 16px;
-            }
-
-            th,
-            td {
-                padding: 6px 8px;
-                font-size: 0.9rem;
-            }
-
-            .hide-mobile {
-                display: none !important;
-            }
-
-            .sfi-track {
-                width: 40px;
-            }
-
-            .status-bar {
-                font-size: 0.8rem;
-                padding: 4px 10px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>NGSL 词表 · 个人学习工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', sans-serif;
+      background-color: #faf8f2;
+      color: #2e3b2c;
+      transition: background-color 0.3s, color 0.3s;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    body.dark {
+      background-color: #1e2a1e;
+      color: #e0e6d8;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      padding: 1rem 1.2rem;
+      margin: 0 auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 头部区域 */
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.2rem;
+      gap: 0.8rem;
+    }
+
+    .title-section {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: #2d5a27;
+    }
+
+    body.dark h1 {
+      color: #bcd9b2;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #5e6b55;
+      background: #e9f0e3;
+      padding: 0.2rem 0.7rem;
+      border-radius: 20px;
+    }
+
+    body.dark .subtitle {
+      background: #2e3d2e;
+      color: #b9c9af;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-box input {
+      width: 220px;
+      padding: 0.6rem 1rem 0.6rem 2.4rem;
+      border: 1px solid #c8d6c0;
+      border-radius: 30px;
+      background: white;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      background-color: #ffffff;
+      color: #2e3b2c;
+    }
+
+    body.dark .search-box input {
+      background-color: #2b3822;
+      border-color: #4b5e40;
+      color: #e0e6d8;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: #4f7a3f;
+      box-shadow: 0 0 0 3px rgba(79, 122, 63, 0.2);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.9rem;
+      color: #7e8d74;
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    .theme-toggle {
+      background: none;
+      border: 1px solid #c8d6c0;
+      border-radius: 30px;
+      padding: 0.5rem 1rem;
+      font-size: 1.1rem;
+      cursor: pointer;
+      background: white;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      color: #2e3b2c;
+    }
+
+    body.dark .theme-toggle {
+      background: #2b3822;
+      border-color: #4b5e40;
+      color: #e0e6d8;
+    }
+
+    .theme-toggle:hover {
+      background: #e9f0e3;
+    }
+
+    body.dark .theme-toggle:hover {
+      background: #3d4f33;
+    }
+
+    /* 分页切换按钮 */
+    .view-toggle-btn {
+      background: white;
+      border: 1px solid #c8d6c0;
+      border-radius: 30px;
+      padding: 0.5rem 1.1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: #ffffff;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      color: #2e3b2c;
+      font-weight: 500;
+    }
+
+    body.dark .view-toggle-btn {
+      background: #2b3822;
+      border-color: #4b5e40;
+      color: #e0e6d8;
+    }
+
+    .view-toggle-btn:hover {
+      background: #e9f0e3;
+    }
+
+    body.dark .view-toggle-btn:hover {
+      background: #3d4f33;
+    }
+
+    /* 统计与状态栏 */
+    .stats-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.8rem;
+      font-size: 0.9rem;
+      color: #4b5a40;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    body.dark .stats-bar {
+      color: #b0bd9f;
+    }
+
+    .word-count {
+      background: #eef4e7;
+      padding: 0.25rem 0.9rem;
+      border-radius: 20px;
+    }
+
+    body.dark .word-count {
+      background: #2f3d2a;
+    }
+
+    /* 表格容器 */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 16px;
+      border: 1px solid #d4ddcb;
+      background: white;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.03);
+      transition: background 0.3s, border-color 0.3s;
+      flex: 1;
+    }
+
+    body.dark .table-wrapper {
+      background: #212e1e;
+      border-color: #3f5335;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+      white-space: nowrap;
+      table-layout: auto;
+    }
+
+    th {
+      background: #e2efd6;
+      font-weight: 600;
+      padding: 0.9rem 0.8rem;
+      text-align: left;
+      border-bottom: 2px solid #b8caa6;
+      border-right: 1px solid #c8d6c0;
+      color: #1e3a1a;
+      cursor: default;
+      user-select: none;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    body.dark th {
+      background: #2b3d26;
+      border-bottom-color: #4a5e3e;
+      border-right-color: #3f5335;
+      color: #dce8d0;
+    }
+
+    th.sortable {
+      cursor: pointer;
+    }
+
+    th.sortable:hover {
+      background: #d0e2bf;
+    }
+
+    body.dark th.sortable:hover {
+      background: #3e5534;
+    }
+
+    th .sort-indicator {
+      margin-left: 0.3rem;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+
+    td {
+      padding: 0.7rem 0.8rem;
+      border-bottom: 1px solid #e3e8db;
+      border-right: 1px solid #e3e8db;
+      color: #2e3b2c;
+      background-color: white;
+    }
+
+    body.dark td {
+      background-color: #1e2a1a;
+      border-bottom-color: #374e2e;
+      border-right-color: #374e2e;
+      color: #dbe4d0;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover td {
+      background-color: #f5f9f0;
+    }
+
+    body.dark tbody tr:hover td {
+      background-color: #2b3b24;
+    }
+
+    .sfi-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .progress-bar-bg {
+      flex: 1;
+      height: 7px;
+      background: #e0e7da;
+      border-radius: 10px;
+      overflow: hidden;
+      min-width: 60px;
+    }
+
+    body.dark .progress-bar-bg {
+      background: #3a4c31;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #d4a843;
+      border-radius: 10px;
+      transition: width 0.2s;
+    }
+
+    .fav-btn {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: #aaa;
+      transition: 0.2s;
+      padding: 0.2rem 0.4rem;
+      line-height: 1;
+    }
+
+    .fav-btn.active {
+      color: #e74c3c;
+    }
+
+    .fav-btn:hover {
+      transform: scale(1.2);
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 2.5rem !important;
+      font-size: 1.1rem;
+      color: #7e8d74;
+    }
+
+    /* 分页控件 */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .page-btn {
+      background: white;
+      border: 1px solid #c8d6c0;
+      border-radius: 20px;
+      padding: 0.4rem 0.9rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.2s;
+      color: #2e3b2c;
+    }
+
+    body.dark .page-btn {
+      background: #2b3822;
+      border-color: #4b5e40;
+      color: #e0e6d8;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .page-btn.active-page {
+      background: #4f7a3f;
+      color: white;
+      border-color: #4f7a3f;
+      font-weight: 600;
+    }
+
+    body.dark .page-btn.active-page {
+      background: #608a4a;
+      border-color: #608a4a;
+    }
+
+    /* 响应式：窄屏隐藏释义和收藏列 */
+    @media (max-width: 650px) {
+      .col-meaning, .col-fav {
+        display: none;
+      }
+      .search-box input {
+        width: 160px;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+
+    footer {
+      margin-top: 1.2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #8a9a7e;
+    }
+  </style>
 </head>
-
 <body>
+  <div class="container">
+    <div class="header">
+      <div class="title-section">
+        <h1>📗 NGSL 词表</h1>
+        <span class="subtitle">高频词 · 个人标记</span>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="搜索单词或释义..." autocomplete="off">
+        </div>
+        <button id="viewToggleBtn" class="view-toggle-btn" title="切换分页 / 显示全部">
+          📄 分页显示
+        </button>
+        <button id="themeToggle" class="theme-toggle" title="切换深色/浅色主题">
+          🌙 深色
+        </button>
+      </div>
+    </div>
 
-    <!-- 隐藏的文件选择器 -->
-    <input type="file" id="fileInput" accept=".txt,.csv,.tsv" style="display: none;" />
+    <div class="stats-bar">
+      <span class="word-count" id="wordCount">加载中...</span>
+      <span id="sortHint" style="font-size:0.8rem;">点击表头排序：序号/单词/SFI</span>
+    </div>
 
-    <div class="container">
-        <!-- 头部 -->
-        <header>
-            <h1>NGSL 词汇表 <span>词典查询</span></h1>
-            <div class="controls">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="搜索单词或词形…" />
+    <div class="table-wrapper">
+      <table id="wordTable">
+        <thead>
+          <tr>
+            <th class="sortable" data-sort="index">序号 <span class="sort-indicator">↕</span></th>
+            <th class="sortable" data-sort="word">单词 <span class="sort-indicator">↕</span></th>
+            <th class="col-meaning">释义</th>
+            <th class="sortable" data-sort="sfi">SFI 词频 <span class="sort-indicator">↕</span></th>
+            <th class="col-fav">收藏</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- 动态渲染 -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" id="paginationContainer"></div>
+    <footer>词汇数据源自 NGSL · 轻量学习工具</footer>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- 全局状态 ----------
+      let allWords = [];                 // 原始解析数据
+      let filteredWords = [];           // 搜索过滤后的数据
+      let currentSort = { field: 'index', order: 'asc' }; // 默认按序号升序
+      let currentPage = 1;
+      let pageSize = 100;              // 默认分页大小
+      let showAll = false;             // 是否显示全部（不分页）
+      
+      // DOM 元素
+      const searchInput = document.getElementById('searchInput');
+      const tableBody = document.getElementById('tableBody');
+      const viewToggleBtn = document.getElementById('viewToggleBtn');
+      const themeToggle = document.getElementById('themeToggle');
+      const wordCountSpan = document.getElementById('wordCount');
+      const paginationContainer = document.getElementById('paginationContainer');
+      const sortableHeaders = document.querySelectorAll('th.sortable');
+
+      // ---------- 数据加载 ----------
+      async function loadData() {
+        try {
+          const response = await fetch('data.txt');
+          if (!response.ok) throw new Error('data.txt 加载失败');
+          const text = await response.text();
+          parseData(text);
+        } catch (error) {
+          console.error(error);
+          tableBody.innerHTML = `<tr><td colspan="5" class="no-results">⚠️ 无法加载 data.txt，请确保文件存在于同目录下</td></tr>`;
+          wordCountSpan.textContent = '0 个单词';
+        }
+      }
+
+      function parseData(rawText) {
+        const lines = rawText.split(/\r?\n/);
+        const parsed = [];
+        for (let line of lines) {
+          line = line.trim();
+          if (line === '') continue;
+          // 跳过可能的表头行（包含 Number 或 Word 字样）
+          if (/^(Number|Word|序号|单词)/i.test(line)) continue;
+          
+          const parts = line.split('\t');
+          if (parts.length < 3) continue; // 至少需要单词、序号、SFI
+          
+          const word = parts[0].trim();
+          const index = parseInt(parts[1], 10);
+          const sfi = parseFloat(parts[2]);
+          // 可选第4列频次，第5列释义
+          const frequency = parts[3] ? parts[3].trim() : '';
+          const meaning = parts.length >= 5 ? parts[4].trim() : '';
+          
+          if (isNaN(index) || isNaN(sfi) || !word) continue;
+          
+          parsed.push({
+            word,
+            index,
+            sfi,
+            frequency,
+            meaning: meaning || '—',
+            // 收藏状态稍后从 localStorage 读取
+            favorite: false
+          });
+        }
+        allWords = parsed;
+        // 读取收藏状态
+        loadFavorites();
+        // 初始排序按序号升序
+        sortData('index', 'asc');
+        applyFilterAndRender();
+      }
+
+      // ---------- 收藏状态持久化 ----------
+      function loadFavorites() {
+        const favSet = getFavoritesFromStorage();
+        allWords.forEach(w => {
+          w.favorite = favSet.has(w.word);
+        });
+      }
+
+      function getFavoritesFromStorage() {
+        try {
+          const stored = localStorage.getItem('ngsl_favorites');
+          return stored ? new Set(JSON.parse(stored)) : new Set();
+        } catch (e) {
+          return new Set();
+        }
+      }
+
+      function saveFavoritesToStorage(favSet) {
+        localStorage.setItem('ngsl_favorites', JSON.stringify([...favSet]));
+      }
+
+      function toggleFavorite(word) {
+        const favSet = getFavoritesFromStorage();
+        if (favSet.has(word)) {
+          favSet.delete(word);
+        } else {
+          favSet.add(word);
+        }
+        saveFavoritesToStorage(favSet);
+        // 更新内存数据
+        const target = allWords.find(w => w.word === word);
+        if (target) target.favorite = favSet.has(word);
+        // 同时更新 filteredWords 中对应项
+        const filteredTarget = filteredWords.find(w => w.word === word);
+        if (filteredTarget) filteredTarget.favorite = favSet.has(word);
+        renderTable();
+      }
+
+      // ---------- 排序 ----------
+      function sortData(field, order) {
+        currentSort.field = field;
+        currentSort.order = order;
+        
+        filteredWords.sort((a, b) => {
+          let valA, valB;
+          if (field === 'index') {
+            valA = a.index;
+            valB = b.index;
+          } else if (field === 'word') {
+            valA = a.word.toLowerCase();
+            valB = b.word.toLowerCase();
+          } else if (field === 'sfi') {
+            valA = a.sfi;
+            valB = b.sfi;
+          } else {
+            return 0;
+          }
+          
+          if (valA < valB) return order === 'asc' ? -1 : 1;
+          if (valA > valB) return order === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
+      // 表头点击处理
+      sortableHeaders.forEach(th => {
+        th.addEventListener('click', () => {
+          const field = th.dataset.sort;
+          if (!field) return;
+          if (currentSort.field === field) {
+            // 切换升降序
+            const newOrder = currentSort.order === 'asc' ? 'desc' : 'asc';
+            sortData(field, newOrder);
+          } else {
+            sortData(field, 'asc');
+          }
+          currentPage = 1;
+          renderTable();
+          updatePagination();
+        });
+      });
+
+      // ---------- 搜索过滤 ----------
+      function filterWords() {
+        const query = searchInput.value.trim().toLowerCase();
+        if (query === '') {
+          filteredWords = [...allWords];
+        } else {
+          filteredWords = allWords.filter(w => 
+            w.word.toLowerCase().includes(query) || 
+            (w.meaning && w.meaning.toLowerCase().includes(query))
+          );
+        }
+        // 保持当前排序
+        sortData(currentSort.field, currentSort.order);
+        currentPage = 1;
+      }
+
+      function applyFilterAndRender() {
+        filterWords();
+        renderTable();
+        updatePagination();
+      }
+
+      // ---------- 渲染表格 ----------
+      function renderTable() {
+        if (filteredWords.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="5" class="no-results">🔍 没有匹配的单词</td></tr>`;
+          wordCountSpan.textContent = '0 个单词';
+          return;
+        }
+
+        let displayWords;
+        if (showAll) {
+          displayWords = filteredWords;
+        } else {
+          const start = (currentPage - 1) * pageSize;
+          const end = start + pageSize;
+          displayWords = filteredWords.slice(start, end);
+        }
+
+        let html = '';
+        for (let w of displayWords) {
+          const sfiPercent = Math.min(100, Math.max(0, ((w.sfi - 35) / (90 - 35)) * 100));
+          const favClass = w.favorite ? 'active' : '';
+          html += `
+            <tr>
+              <td>${w.index}</td>
+              <td><strong>${escapeHtml(w.word)}</strong></td>
+              <td class="col-meaning">${escapeHtml(w.meaning)}</td>
+              <td>
+                <div class="sfi-cell">
+                  <span>${w.sfi.toFixed(2)}</span>
+                  <div class="progress-bar-bg">
+                    <div class="progress-fill" style="width: ${sfiPercent}%;"></div>
+                  </div>
                 </div>
-                <select id="sortSelect">
-                    <option value="n">按频率排序</option>
-                    <option value="word">按字母排序</option>
-                    <option value="sfi">按 SFI 排序</option>
-                </select>
-                <button class="btn-text" id="loadDataBtn">📁 导入数据</button>
-                <button class="btn-icon" id="themeToggle" title="切换主题">🌙</button>
-            </div>
-        </header>
-
-        <!-- 状态栏 -->
-        <div class="status-bar" id="statusBar">
-            <span>📊 共 <span class="count" id="dataCount">0</span> 条词汇</span>
-            <span class="hint">💡 点击单词查释义 · 按 <kbd>/</kbd> 快速搜索</span>
-        </div>
-
-        <!-- 表格 -->
-        <div class="table-container">
-            <div class="empty-state" id="emptyState">
-                <div class="icon">📂</div>
-                <h2>暂无数据</h2>
-                <p>请点击上方「导入数据」按钮，选择您的 CSV / TXT 文件。<br />支持制表符或逗号分隔。</p>
-            </div>
-            <table id="dataTable" style="display: none;">
-                <thead>
-                    <tr>
-                        <th data-sort="n" style="width: 56px;">#</th>
-                        <th data-sort="word">单词</th>
-                        <th class="hide-mobile">相关词形</th>
-                        <th data-sort="sfi" style="width: 150px;">SFI 词频</th>
-                        <th class="hide-mobile" style="width: 70px;">收藏</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-
-        <!-- 分页 -->
-        <div class="pagination" id="pagination"></div>
-
-        <footer>
-            <p>数据来源: NGSL Word List · 词典 API: dictionaryapi.dev</p>
-        </footer>
-    </div>
-
-    <!-- 词典弹窗 -->
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal" id="modalContent">
-            <button class="modal-close" id="modalClose">×</button>
-            <div id="modalBody"></div>
-        </div>
-    </div>
-
-    <script>
-        // =====================================================================
-        //  配置
-        // =====================================================================
-        const CONFIG = {
-            dictionary: {
-                baseUrl: "https://api.dictionaryapi.dev/api/v2/entries/en/",
-                queryParams: { simple: true },
-                apiKey: "",
-                apiKeyParam: "key"
-            },
-            page: { size: 50 }
-        };
-
-        // =====================================================================
-        //  状态
-        // =====================================================================
-        let ALL_WORDS = [];
-        let filteredWords = [];
-        let currentPage = 1;
-        let sortBy = 'n';
-        let favorites = JSON.parse(localStorage.getItem('ngsl_favs') || '{}');
-
-        // =====================================================================
-        //  DOM 引用
-        // =====================================================================
-        const tableBody = document.getElementById('tableBody');
-        const pagination = document.getElementById('pagination');
-        const searchInput = document.getElementById('searchInput');
-        const sortSelect = document.getElementById('sortSelect');
-        const modalOverlay = document.getElementById('modalOverlay');
-        const modalBody = document.getElementById('modalBody');
-        const modalClose = document.getElementById('modalClose');
-        const fileInput = document.getElementById('fileInput');
-        const loadDataBtn = document.getElementById('loadDataBtn');
-        const emptyState = document.getElementById('emptyState');
-        const dataTable = document.getElementById('dataTable');
-        const dataCount = document.getElementById('dataCount');
-        const statusBar = document.getElementById('statusBar');
-
-        // =====================================================================
-        //  核心：数据解析（支持多种列顺序，自动检测）
-        // =====================================================================
-        function parseTextData(text) {
-            const lines = text.split(/\r?\n/);
-            const result = [];
-            let detectedFormat = null; // 'word_first' | 'n_first'
-
-            for (let i = 0; i < lines.length; i++) {
-                const raw = lines[i];
-                if (!raw.trim()) continue;
-
-                // ---- 跳过常见表头 ----
-                const trimmed = raw.trim();
-                if (/^(Number|Rank|Word|SFI|Freq|词|单词|排名|词频|频次|sheet_)/i.test(trimmed)) {
-                    continue;
-                }
-
-                // ---- 分隔 ----
-                let parts;
-                if (raw.includes('\t')) {
-                    parts = raw.split('\t');
-                } else if (raw.includes(',')) {
-                    parts = raw.split(',');
-                } else {
-                    // 尝试用空白分割（空格）
-                    parts = raw.split(/\s+/);
-                }
-                const clean = parts.map(p => p.trim()).filter(p => p !== '');
-                if (clean.length < 3) continue; // 至少需要 word + sfi + 其他
-
-                // ---- 自动检测列顺序（基于第一行有效数据） ----
-                if (detectedFormat === null) {
-                    const c0 = clean[0],
-                        c1 = clean[1],
-                        c2 = clean[2];
-                    const isNum0 = !isNaN(parseFloat(c0)) && isFinite(c0);
-                    const isNum1 = !isNaN(parseFloat(c1)) && isFinite(c1);
-                    const isNum2 = !isNaN(parseFloat(c2)) && isFinite(c2);
-
-                    if (!isNum0 && isNum1 && isNum2) {
-                        // [word, number, number, ...] → word_first
-                        detectedFormat = 'word_first';
-                    } else if (isNum0 && !isNum1 && isNum2) {
-                        // [number, word, number, ...] → n_first
-                        detectedFormat = 'n_first';
-                    } else if (!isNum0 && !isNum1 && isNum2) {
-                        // [word, word, number, ...] → 可能是 [word, forms, sfi, ...] 或 [word, word, sfi, ...]
-                        // 保守处理：当作 word_first，把第二列作为 forms
-                        detectedFormat = 'word_first';
-                    } else {
-                        // 无法判断，默认 n_first
-                        detectedFormat = 'n_first';
-                    }
-                    console.log('[解析] 检测到格式:', detectedFormat);
-                }
-
-                // ---- 按格式解析 ----
-                let n, word, forms, sfi, u;
-                try {
-                    if (detectedFormat === 'word_first') {
-                        // 用户格式: [word, n, sfi, u] 或 [word, forms, sfi, u] 或 [word, n, forms, sfi, u]
-                        word = clean[0];
-                        // 判断第二列是数字还是文本
-                        const secondIsNum = !isNaN(parseFloat(clean[1])) && isFinite(clean[1]);
-                        if (secondIsNum) {
-                            // [word, n, sfi, u] 或 [word, n, forms, sfi, u]
-                            n = parseInt(clean[1]) || result.length + 1;
-                            if (clean.length >= 5) {
-                                // [word, n, forms, sfi, u]
-                                forms = clean[2];
-                                sfi = parseFloat(clean[3]);
-                                u = parseInt(clean[4]) || 0;
-                            } else {
-                                // [word, n, sfi, u]
-                                forms = '';
-                                sfi = parseFloat(clean[2]);
-                                u = parseInt(clean[3]) || 0;
-                            }
-                        } else {
-                            // [word, forms, sfi, u] 或 [word, forms, sfi]
-                            forms = clean[1];
-                            if (clean.length >= 4) {
-                                sfi = parseFloat(clean[2]);
-                                u = parseInt(clean[3]) || 0;
-                            } else {
-                                sfi = parseFloat(clean[2]);
-                                u = 0;
-                            }
-                            n = result.length + 1;
-                        }
-                    } else {
-                        // n_first: [n, word, forms, sfi, u] 或 [n, word, sfi, u]
-                        n = parseInt(clean[0]) || result.length + 1;
-                        word = clean[1];
-                        if (clean.length >= 5) {
-                            forms = clean[2];
-                            sfi = parseFloat(clean[3]);
-                            u = parseInt(clean[4]) || 0;
-                        } else {
-                            forms = '';
-                            sfi = parseFloat(clean[2]);
-                            u = parseInt(clean[3]) || 0;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('[解析] 跳过行:', raw, e);
-                    continue;
-                }
-
-                if (!word || isNaN(sfi)) {
-                    console.warn('[解析] 跳过无效行:', raw);
-                    continue;
-                }
-
-                result.push({
-                    n: n || result.length + 1,
-                    word: word.trim(),
-                    forms: forms ? forms.trim() : '',
-                    sfi: sfi,
-                    u: u || 0
-                });
-            }
-
-            // 如果检测失败但解析出了数据，按 n 排序
-            if (result.length > 0 && detectedFormat === null) {
-                result.sort((a, b) => a.n - b.n);
-            }
-
-            return result;
+              </td>
+              <td class="col-fav">
+                <button class="fav-btn ${favClass}" data-word="${escapeHtml(w.word)}">♥</button>
+              </td>
+            </tr>
+          `;
         }
+        tableBody.innerHTML = html;
 
-        // =====================================================================
-        //  加载数据文件
-        // =====================================================================
-        function loadDataFile(file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const text = e.target.result;
-                const parsed = parseTextData(text);
-                if (parsed.length === 0) {
-                    alert('❌ 未能解析到有效数据。\n请检查文件格式是否为制表符或逗号分隔，且包含单词、SFI 等列。');
-                    return;
-                }
-                ALL_WORDS = parsed;
-                console.log('[加载] 成功解析', ALL_WORDS.length, '条数据');
-                // 更新界面
-                emptyState.style.display = 'none';
-                dataTable.style.display = 'table';
-                dataCount.textContent = ALL_WORDS.length;
-                filterAndSort();
-            };
-            reader.onerror = function () {
-                alert('❌ 读取文件失败，请重试。');
-            };
-            reader.readAsText(file);
+        // 绑定收藏事件
+        document.querySelectorAll('.fav-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const word = btn.dataset.word;
+            toggleFavorite(word);
+          });
+        });
+
+        wordCountSpan.textContent = `共 ${filteredWords.length} 个单词`;
+      }
+
+      // 简单的转义函数
+      function escapeHtml(text) {
+        return String(text)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // ---------- 分页控件 ----------
+      function updatePagination() {
+        if (showAll || filteredWords.length <= pageSize) {
+          paginationContainer.innerHTML = '';
+          return;
         }
-
-        // =====================================================================
-        //  渲染表格
-        // =====================================================================
-        function renderTable() {
-            const start = (currentPage - 1) * CONFIG.page.size;
-            const end = Math.min(start + CONFIG.page.size, filteredWords.length);
-            const pageData = filteredWords.slice(start, end);
-
-            if (pageData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-light);">🔍 没有匹配的单词</td></tr>`;
-                return;
-            }
-
-            tableBody.innerHTML = pageData.map(item => {
-                // SFI 进度条宽度：将 SFI 映射到 0~100%，基于常见范围 40~90
-                const pct = Math.min(100, Math.max(2, ((item.sfi - 35) / 55) * 100));
-                const isFav = favorites[item.word] ? 'fav-active' : '';
-                return `
-                        <tr onclick="fetchDictionary('${item.word}')">
-                            <td>${item.n}</td>
-                            <td class="word-cell">${item.word}</td>
-                            <td class="forms-cell hide-mobile">${item.forms || '—'}</td>
-                            <td>
-                                <div class="sfi-bar">
-                                    <div class="sfi-track">
-                                        <div class="sfi-fill" style="width:${pct}%;"></div>
-                                    </div>
-                                    <span class="sfi-val">${item.sfi.toFixed(1)}</span>
-                                </div>
-                            </td>
-                            <td class="hide-mobile" onclick="event.stopPropagation()">
-                                <button class="action-btn ${isFav}" onclick="toggleFav('${item.word}', this)">♥</button>
-                            </td>
-                        </tr>
-                    `;
-            }).join('');
+        
+        const totalPages = Math.ceil(filteredWords.length / pageSize);
+        let html = '';
+        html += `<button class="page-btn" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>‹ 上一页</button>`;
+        
+        for (let i = 1; i <= totalPages; i++) {
+          if (totalPages <= 7 || i === 1 || i === totalPages || (i >= currentPage-1 && i <= currentPage+1)) {
+            html += `<button class="page-btn ${i === currentPage ? 'active-page' : ''}" data-page="${i}">${i}</button>`;
+          } else if (i === currentPage - 2 || i === currentPage + 2) {
+            html += `<span style="padding:0 0.3rem;">…</span>`;
+          }
         }
+        
+        html += `<button class="page-btn" data-page="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页 ›</button>`;
+        paginationContainer.innerHTML = html;
 
-        // =====================================================================
-        //  分页
-        // =====================================================================
-        function renderPagination() {
-            const total = filteredWords.length;
-            const totalPages = Math.ceil(total / CONFIG.page.size) || 1;
-            if (totalPages <= 1) {
-                pagination.innerHTML = `<span class="page-info">共 ${total} 条</span>`;
-                return;
+        // 绑定分页点击
+        paginationContainer.querySelectorAll('.page-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const page = btn.dataset.page;
+            if (page === 'prev' && currentPage > 1) {
+              currentPage--;
+            } else if (page === 'next' && currentPage < totalPages) {
+              currentPage++;
+            } else if (!isNaN(parseInt(page))) {
+              currentPage = parseInt(page);
             }
-
-            let html = `<button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
-
-            const maxShow = 5;
-            let startP = Math.max(1, currentPage - Math.floor(maxShow / 2));
-            let endP = Math.min(totalPages, startP + maxShow - 1);
-            if (endP - startP + 1 < maxShow) {
-                startP = Math.max(1, endP - maxShow + 1);
-            }
-
-            if (startP > 1) {
-                html += `<button class="page-btn" onclick="changePage(1)">1</button>`;
-                if (startP > 2) html += `<span>…</span>`;
-            }
-            for (let i = startP; i <= endP; i++) {
-                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
-            }
-            if (endP < totalPages) {
-                if (endP < totalPages - 1) html += `<span>…</span>`;
-                html += `<button class="page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
-            }
-
-            html +=
-                `<button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
-            html += `<span class="page-info">共 ${total} 条</span>`;
-            pagination.innerHTML = html;
-        }
-
-        function changePage(page) {
-            const totalPages = Math.ceil(filteredWords.length / CONFIG.page.size) || 1;
-            if (page < 1 || page > totalPages) return;
-            currentPage = page;
             renderTable();
-            renderPagination();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // =====================================================================
-        //  筛选 & 排序
-        // =====================================================================
-        function filterAndSort() {
-            if (ALL_WORDS.length === 0) return;
-
-            const q = searchInput.value.toLowerCase().trim();
-            filteredWords = ALL_WORDS.filter(item => {
-                if (!q) return true;
-                if (item.word.toLowerCase().includes(q)) return true;
-                if (item.forms && item.forms.toLowerCase().includes(q)) return true;
-                return false;
-            });
-
-            // 排序
-            if (sortBy === 'n') {
-                filteredWords.sort((a, b) => a.n - b.n);
-            } else if (sortBy === 'word') {
-                filteredWords.sort((a, b) => a.word.localeCompare(b.word));
-            } else if (sortBy === 'sfi') {
-                filteredWords.sort((a, b) => b.sfi - a.sfi);
-            }
-
-            dataCount.textContent = ALL_WORDS.length;
-            currentPage = 1;
-            renderTable();
-            renderPagination();
-        }
-
-        // =====================================================================
-        //  词典查询
-        // =====================================================================
-        async function fetchDictionary(word) {
-            if (!word) return;
-            modalOverlay.classList.add('active');
-            modalBody.innerHTML = `<div class="loader"><div></div>正在查询 “${word}”…</div>`;
-
-            try {
-                const url = new URL(CONFIG.dictionary.baseUrl + encodeURIComponent(word));
-                for (const [k, v] of Object.entries(CONFIG.dictionary.queryParams)) {
-                    url.searchParams.set(k, v);
-                }
-                if (CONFIG.dictionary.apiKey) {
-                    url.searchParams.set(CONFIG.dictionary.apiKeyParam, CONFIG.dictionary.apiKey);
-                }
-
-                const resp = await fetch(url.toString());
-                if (!resp.ok) throw new Error('未找到该单词的释义');
-                const data = await resp.json();
-                renderDictModal(word, data);
-            } catch (err) {
-                modalBody.innerHTML = `
-                        <h2>${word}</h2>
-                        <div class="error-msg"><p>❌ ${err.message}</p></div>
-                    `;
-            }
-        }
-
-        function renderDictModal(word, data) {
-            let html = `<h2>${word}</h2>`;
-            const entry = data[0];
-            if (entry) {
-                const ph = entry.phonetic || (entry.phonetics && entry.phonetics.find(p => p.text)?.text);
-                if (ph) html += `<div class="phonetic">${ph}</div>`;
-
-                if (entry.meanings) {
-                    entry.meanings.forEach(m => {
-                        html += `<div class="dict-section"><div class="pos">${m.partOfSpeech}</div>`;
-                        (m.definitions || []).slice(0, 4).forEach(d => {
-                            html += `<div class="definition">${d.definition}</div>`;
-                            if (d.example) html += `<div class="example">“${d.example}”</div>`;
-                        });
-                        html += `</div>`;
-                    });
-                }
-            }
-            modalBody.innerHTML = html || `<p>未找到释义</p>`;
-        }
-
-        // =====================================================================
-        //  收藏
-        // =====================================================================
-        function toggleFav(word, btn) {
-            if (favorites[word]) {
-                delete favorites[word];
-                btn.classList.remove('fav-active');
-            } else {
-                favorites[word] = true;
-                btn.classList.add('fav-active');
-            }
-            localStorage.setItem('ngsl_favs', JSON.stringify(favorites));
-        }
-
-        // =====================================================================
-        //  事件绑定
-        // =====================================================================
-
-        // 搜索（防抖）
-        let searchTimer;
-        searchInput.addEventListener('input', () => {
-            clearTimeout(searchTimer);
-            searchTimer = setTimeout(filterAndSort, 280);
+            updatePagination();
+          });
         });
+      }
 
-        // 排序下拉
-        sortSelect.addEventListener('change', (e) => {
-            sortBy = e.target.value;
-            filterAndSort();
-        });
-
-        // 表头点击排序
-        document.querySelectorAll('th[data-sort]').forEach(th => {
-            th.addEventListener('click', () => {
-                sortBy = th.dataset.sort;
-                sortSelect.value = sortBy;
-                filterAndSort();
-            });
-        });
-
-        // 弹窗关闭
-        modalClose.addEventListener('click', () => modalOverlay.classList.remove('active'));
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) modalOverlay.classList.remove('active');
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') modalOverlay.classList.remove('active');
-            if (e.key === '/' && document.activeElement !== searchInput) {
-                e.preventDefault();
-                searchInput.focus();
-            }
-        });
-
-        // 导入数据
-        loadDataBtn.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) loadDataFile(file);
-            e.target.value = ''; // 允许重复选择同一文件
-        });
-
-        // 主题切换
-        const themeToggle = document.getElementById('themeToggle');
-        const savedTheme = localStorage.getItem('ngsl_theme') || 'light';
-        if (savedTheme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            themeToggle.textContent = '☀️';
+      // ---------- 视图切换（分页/全部） ----------
+      viewToggleBtn.addEventListener('click', () => {
+        showAll = !showAll;
+        if (showAll) {
+          viewToggleBtn.innerHTML = '📋 显示全部';
+          currentPage = 1;
+        } else {
+          viewToggleBtn.innerHTML = '📄 分页显示';
+          currentPage = 1;
         }
-        themeToggle.addEventListener('click', () => {
-            const cur = document.documentElement.getAttribute('data-theme');
-            if (cur === 'dark') {
-                document.documentElement.removeAttribute('data-theme');
-                themeToggle.textContent = '🌙';
-                localStorage.setItem('ngsl_theme', 'light');
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                themeToggle.textContent = '☀️';
-                localStorage.setItem('ngsl_theme', 'dark');
-            }
-        });
+        renderTable();
+        updatePagination();
+      });
 
-        // =====================================================================
-        //  自动加载同目录下的 data.txt
-        // =====================================================================
-        async function autoLoad() {
-            try {
-                const resp = await fetch('data.txt');
-                if (resp.ok) {
-                    const text = await resp.text();
-                    const parsed = parseTextData(text);
-                    if (parsed.length > 0) {
-                        ALL_WORDS = parsed;
-                        console.log('[自动加载] 成功加载 data.txt，共', ALL_WORDS.length, '条');
-                        emptyState.style.display = 'none';
-                        dataTable.style.display = 'table';
-                        dataCount.textContent = ALL_WORDS.length;
-                        filterAndSort();
-                        return;
-                    }
-                }
-            } catch (_) { /* 忽略 */ }
-            // 没有自动加载成功，显示空状态
-            emptyState.style.display = 'block';
-            dataTable.style.display = 'none';
-            dataCount.textContent = '0';
-            console.log('[自动加载] 未找到 data.txt，请手动导入');
+      // ---------- 主题切换 ----------
+      function applyTheme(theme) {
+        if (theme === 'dark') {
+          document.body.classList.add('dark');
+          themeToggle.innerHTML = '☀️ 浅色';
+        } else {
+          document.body.classList.remove('dark');
+          themeToggle.innerHTML = '🌙 深色';
         }
-        autoLoad();
+      }
 
-        // =====================================================================
-        //  暴露全局函数供 onclick 调用
-        // =====================================================================
-        window.fetchDictionary = fetchDictionary;
-        window.toggleFav = toggleFav;
-        window.changePage = changePage;
-    </script>
+      function toggleTheme() {
+        const isDark = document.body.classList.contains('dark');
+        const newTheme = isDark ? 'light' : 'dark';
+        localStorage.setItem('ngsl_theme', newTheme);
+        applyTheme(newTheme);
+      }
+
+      themeToggle.addEventListener('click', toggleTheme);
+
+      // 初始化主题
+      const savedTheme = localStorage.getItem('ngsl_theme') || 'light';
+      applyTheme(savedTheme);
+
+      // ---------- 键盘快捷键 ----------
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        }
+      });
+
+      // 搜索输入监听
+      searchInput.addEventListener('input', () => {
+        applyFilterAndRender();
+      });
+
+      // 启动加载
+      loadData();
+    })();
+  </script>
 </body>
-
 </html>
