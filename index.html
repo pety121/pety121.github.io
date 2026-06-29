@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NGSL 词汇表 · 词典查询</title>
+    <title>NGSL 词汇表 · 紧凑查询器</title>
     <style>
         :root {
             --bg: #faf7f1;
@@ -15,8 +15,10 @@
             --primary-light: #e6f2ee;
             --accent: #c98a2b;
             --border: #e0d8c8;
+            --border-strong: #c8bfa8;
             --shadow: 0 4px 12px rgba(0,0,0,0.08);
-            --radius: 8px;
+            --radius: 6px;
+            --table-border: #d0c7b0;
         }
 
         [data-theme="dark"] {
@@ -29,7 +31,9 @@
             --primary-light: #2a3f38;
             --accent: #e0a84b;
             --border: #333;
+            --border-strong: #444;
             --shadow: 0 4px 12px rgba(0,0,0,0.3);
+            --table-border: #3a3a3a;
         }
 
         * {
@@ -42,14 +46,15 @@
             font-family: system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
             color: var(--text);
-            line-height: 1.6;
+            line-height: 1.5;
             transition: background-color 0.3s, color 0.3s;
+            padding: 10px;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 0 10px;
         }
 
         header {
@@ -57,45 +62,46 @@
             flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            gap: 16px;
-            padding-bottom: 16px;
+            margin-bottom: 16px;
+            gap: 12px;
+            padding-bottom: 12px;
             border-bottom: 2px solid var(--border);
         }
 
         h1 {
             font-family: Georgia, 'Times New Roman', serif;
             color: var(--primary);
-            font-size: clamp(1.5rem, 4vw, 2.2rem);
+            font-size: clamp(1.3rem, 3.5vw, 1.8rem);
             font-weight: 700;
         }
 
         h1 span {
             color: var(--accent);
-            font-size: 0.6em;
+            font-size: 0.65em;
             font-weight: normal;
             margin-left: 8px;
         }
 
         .controls {
             display: flex;
-            gap: 12px;
+            gap: 8px;
             flex-wrap: wrap;
             align-items: center;
         }
 
-        input[type="text"], select {
-            padding: 8px 12px;
+        input[type="text"] {
+            padding: 6px 10px;
             border: 1px solid var(--border);
             border-radius: var(--radius);
             background-color: var(--surface);
             color: var(--text);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             outline: none;
             transition: border-color 0.2s;
+            width: clamp(150px, 25vw, 250px);
         }
 
-        input[type="text"]:focus, select:focus {
+        input[type="text"]:focus {
             border-color: var(--primary);
         }
 
@@ -103,19 +109,18 @@
             position: relative;
         }
 
-        .search-box input {
-            width: clamp(180px, 30vw, 300px);
-            padding-left: 36px;
-        }
-
         .search-box::before {
             content: "🔍";
             position: absolute;
-            left: 12px;
+            left: 8px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             opacity: 0.6;
+        }
+
+        .search-box input {
+            padding-left: 30px;
         }
 
         .btn-icon, .btn-text {
@@ -123,19 +128,20 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             cursor: pointer;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
             color: var(--text);
-            padding: 8px 12px;
+            padding: 6px 10px;
         }
 
         .btn-icon {
-            width: 38px;
-            height: 38px;
-            font-size: 1.1rem;
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
+            padding: 0;
         }
 
         .btn-icon:hover, .btn-text:hover {
@@ -144,23 +150,33 @@
             border-color: var(--primary);
         }
 
+        .btn-icon:active, .btn-text:active {
+            transform: scale(0.95);
+        }
+
         .table-container {
             background: var(--surface);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
             overflow-x: auto;
+            border: 1px solid var(--border);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 700px;
+            min-width: 600px;
         }
 
         th, td {
-            padding: 12px 16px;
+            padding: 8px 10px;
             text-align: left;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--table-border);
+            border-right: 1px solid var(--table-border);
+        }
+
+        th:last-child, td:last-child {
+            border-right: none;
         }
 
         thead th {
@@ -172,6 +188,7 @@
             position: sticky;
             top: 0;
             z-index: 10;
+            font-size: 0.9rem;
         }
         
         [data-theme="dark"] thead th {
@@ -184,9 +201,17 @@
             color: #fff;
         }
 
+        thead th.active-sort::after {
+            content: " ↑";
+            font-size: 0.8em;
+        }
+
+        thead th.active-sort.desc::after {
+            content: " ↓";
+        }
+
         tbody tr {
             transition: background-color 0.1s;
-            cursor: pointer;
         }
 
         tbody tr:hover {
@@ -196,24 +221,42 @@
         .word-cell {
             font-weight: 600;
             color: var(--primary);
-            font-size: 1.05rem;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .word-cell:hover {
+            text-decoration: underline;
         }
 
         .forms-cell {
             color: var(--text-light);
             font-size: 0.85rem;
             font-style: italic;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .forms-cell.expandable {
+            cursor: pointer;
+        }
+
+        .forms-cell.expandable:hover {
+            color: var(--accent);
+            text-decoration: underline;
         }
 
         .sfi-bar {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .sfi-track {
-            width: 60px;
-            height: 6px;
+            width: 50px;
+            height: 5px;
             background: var(--border);
             border-radius: 3px;
             overflow: hidden;
@@ -226,16 +269,17 @@
         }
 
         .sfi-val {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-light);
-            width: 36px;
+            width: 30px;
+            text-align: right;
         }
 
         .action-btn {
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 1rem;
             transition: transform 0.1s;
             color: var(--text-light);
         }
@@ -248,24 +292,97 @@
             color: #e74c3c;
         }
 
+        .custom-def {
+            display: none;
+            background: var(--primary-light);
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            border-left: 3px solid var(--primary);
+        }
+
+        .custom-def.visible {
+            display: block;
+        }
+
+        .custom-def textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 6px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--surface);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+
+        .custom-def-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .custom-def-buttons button {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+        }
+
+        .custom-def-buttons button:hover {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        /* 紧凑模式样式 */
+        .compact-mode .sfi-track {
+            width: 40px;
+        }
+
+        .compact-mode th, .compact-mode td {
+            padding: 6px 8px;
+            font-size: 0.9rem;
+        }
+
+        .compact-mode .word-cell {
+            font-size: 0.95rem;
+        }
+
+        /* 无分页模式 */
+        .no-pagination .pagination {
+            display: none;
+        }
+
+        .no-pagination .table-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
         /* Pagination */
         .pagination {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 8px;
-            margin-top: 24px;
+            gap: 6px;
+            margin-top: 16px;
             flex-wrap: wrap;
         }
 
         .page-btn {
-            padding: 8px 14px;
+            padding: 6px 10px;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             cursor: pointer;
             color: var(--text);
             transition: all 0.2s;
+            font-size: 0.85rem;
         }
 
         .page-btn:hover:not(:disabled) {
@@ -285,7 +402,19 @@
             cursor: not-allowed;
         }
 
-        /* Modal */
+        /* 空状态提示 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state h2 {
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        /* 模态框 - 仅用于自定义释义编辑 */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -313,12 +442,12 @@
 
         .modal {
             background: var(--bg);
-            border-radius: 12px;
+            border-radius: 8px;
             width: 100%;
-            max-width: 600px;
+            max-width: 500px;
             max-height: 80vh;
             overflow-y: auto;
-            padding: 32px;
+            padding: 24px;
             position: relative;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -331,8 +460,8 @@
 
         .modal-close {
             position: absolute;
-            top: 16px;
-            right: 16px;
+            top: 12px;
+            right: 12px;
             background: transparent;
             border: none;
             font-size: 1.5rem;
@@ -344,64 +473,87 @@
         .modal h2 {
             font-family: Georgia, serif;
             color: var(--primary);
-            margin-bottom: 4px;
-            font-size: 2rem;
+            margin-bottom: 16px;
+            font-size: 1.5rem;
         }
 
-        .phonetic {
-            color: var(--accent);
-            font-size: 1.1rem;
-            margin-bottom: 24px;
-            font-style: italic;
+        .modal-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
         }
 
-        .dict-section {
-            margin-bottom: 20px;
-            border-left: 3px solid var(--primary);
-            padding-left: 16px;
+        .modal-controls button {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .pos {
-            font-weight: 600;
-            color: var(--primary);
+        .modal-controls button:hover {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .modal-controls button.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .definition-editor {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--surface);
+            color: var(--text);
+            font-family: inherit;
             font-size: 0.9rem;
-            text-transform: italic;
-            margin-bottom: 8px;
+            resize: vertical;
         }
 
-        .definition {
-            margin-bottom: 8px;
-            padding-left: 12px;
-            position: relative;
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
         }
 
-        .definition::before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: var(--accent);
+        .modal-footer button {
+            padding: 8px 20px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .example {
-            font-size: 0.9rem;
-            color: var(--text-light);
-            font-style: italic;
-            margin-top: 4px;
-            padding-left: 12px;
+        .modal-footer button:hover {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
         }
 
         .loader {
             text-align: center;
-            padding: 40px;
+            padding: 20px;
             color: var(--text-light);
         }
 
         .loader div {
-            border: 4px solid var(--border);
-            border-top: 4px solid var(--primary);
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 24px;
+            height: 24px;
             animation: spin 1s linear infinite;
             margin: 0 auto 12px;
         }
@@ -411,53 +563,165 @@
             100% { transform: rotate(360deg); }
         }
 
-        .error-msg {
-            text-align: center;
-            color: #e74c3c;
-            padding: 20px;
-        }
-
         footer {
             text-align: center;
-            margin-top: 40px;
+            margin-top: 24px;
             color: var(--text-light);
             font-size: 0.85rem;
+            padding: 10px 0;
         }
 
-        /* 空状态提示 */
-        .empty-state {
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 5px;
+            }
+            
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            
+            .controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            input[type="text"] {
+                width: 100%;
+                max-width: none;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 500px;
+            }
+            
+            .forms-cell {
+                max-width: 120px;
+            }
+            
+            .hide-mobile {
+                display: none;
+            }
+            
+            .modal {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            h1 {
+                font-size: 1.2rem;
+            }
+            
+            .btn-icon, .btn-text {
+                padding: 5px 8px;
+                font-size: 0.85rem;
+            }
+            
+            .btn-icon {
+                width: 28px;
+                height: 28px;
+            }
+            
+            th, td {
+                padding: 6px;
+                font-size: 0.8rem;
+            }
+            
+            .word-cell {
+                font-size: 0.9rem;
+            }
+            
+            .forms-cell {
+                max-width: 80px;
+                font-size: 0.75rem;
+            }
+            
+            .sfi-track {
+                width: 40px;
+            }
+            
+            .sfi-val {
+                font-size: 0.75rem;
+            }
+        }
+
+        /* 工具提示 */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 120px;
+            background-color: var(--text);
+            color: var(--bg);
             text-align: center;
-            padding: 60px 20px;
-            color: var(--text-light);
-        }
-        .empty-state h2 {
-            color: var(--text);
-            margin-bottom: 10px;
+            border-radius: 4px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
         }
 
-        @media (max-width: 600px) {
-            .container { padding: 12px; }
-            .modal { padding: 24px 20px; }
-            th, td { padding: 8px 10px; }
-            .hide-mobile { display: none; }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* 导入按钮特殊样式 */
+        .import-btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .import-btn input[type="file"] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            font-size: 100px;
+            text-align: right;
+            filter: alpha(opacity=0);
+            opacity: 0;
+            outline: none;
+            background: white;
+            cursor: inherit;
+            display: block;
         }
     </style>
 </head>
 <body>
-    <input type="file" id="fileInput" accept=".txt,.csv,.json" style="display: none;">
-
     <div class="container">
         <header>
-            <h1>NGSL 词汇表 <span>词典查询</span></h1>
+            <h1>NGSL 词汇表 <span>紧凑查询器</span></h1>
             <div class="controls">
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="搜索单词或词形...">
                 </div>
-                <select id="sortSelect">
-                    <option value="n">按频率排序</option>
-                    <option value="word">按字母排序</option>
-                </select>
-                <button class="btn-text" id="loadDataBtn" title="导入数据文件">📁 导入数据</button>
+                <button class="btn-text" id="compactToggle" title="紧凑模式">📐 紧凑</button>
+                <button class="btn-text" id="paginationToggle" title="分页模式">📄 分页</button>
+                <label class="btn-text import-btn">
+                    📁 导入数据
+                    <input type="file" id="fileInput" accept=".txt,.csv,.json" style="display: none;">
+                </label>
                 <button class="btn-icon" id="themeToggle" title="切换主题">🌙</button>
             </div>
         </header>
@@ -466,16 +730,17 @@
             <div class="table-container">
                 <div class="empty-state" id="emptyState">
                     <h2>暂无数据</h2>
-                    <p>请点击右上角“导入数据”按钮，选择 Excel 另存为的 CSV/TXT 文件。</p>
+                    <p>请点击右上角"导入数据"按钮，选择 CSV/TXT 文件。</p>
+                    <p>支持格式：每行包含 序号, 单词, 词形, 词频, 使用频率</p>
                 </div>
                 <table id="dataTable" style="display: none;">
                     <thead>
                         <tr>
-                            <th data-sort="n" style="width: 60px;">#</th>
+                            <th data-sort="n" style="width: 50px;">#</th>
                             <th data-sort="word">单词</th>
-                            <th class="hide-mobile">相关词形</th>
-                            <th data-sort="sfi" style="width: 140px;">SFI 词频</th>
-                            <th class="hide-mobile" style="width: 80px;">收藏</th>
+                            <th class="hide-mobile" data-sort="forms">相关词形</th>
+                            <th data-sort="sfi" style="width: 100px;">SFI 词频</th>
+                            <th class="hide-mobile" style="width: 60px;">操作</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
@@ -485,31 +750,42 @@
         </main>
 
         <footer>
-            <p>数据来源: NGSL Word List · 词典 API: dictionaryapi.dev</p>
+            <p>数据来源: NGSL Word List · 支持自定义释义 · 快捷键: / 搜索, ESC 关闭弹窗</p>
         </footer>
     </div>
 
-    <!-- Modal -->
+    <!-- 自定义释义编辑模态框 -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal" id="modalContent">
             <button class="modal-close" id="modalClose">×</button>
-            <div id="modalBody"></div>
+            <h2 id="modalTitle">编辑自定义释义</h2>
+            <div id="modalBody">
+                <div class="modal-controls">
+                    <button id="addDefBtn" class="active">添加释义</button>
+                    <button id="clearDefBtn">清除释义</button>
+                </div>
+                <textarea class="definition-editor" id="definitionEditor" placeholder="在此输入单词的简短英文释义..."></textarea>
+                <div class="modal-footer">
+                    <button id="cancelEditBtn">取消</button>
+                    <button id="saveDefBtn">保存</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         // ================= 配置区 =================
         const CONFIG = {
-            dictionary: {
-                baseUrl: "https://api.dictionaryapi.dev/api/v2/entries/en/",
-                queryParams: {
-                    simple: true // 开启简化释义
-                },
-                apiKey: "",       // 如需使用带 key 的 API，填入此处
-                apiKeyParam: "key" // key 作为哪个 query 参数名传
-            },
             page: {
-                size: 50 // 每页显示条数
+                size: 50, // 每页显示条数
+                compactSize: 100 // 紧凑模式每页显示条数
+            },
+            storage: {
+                favorites: 'ngsl_favs',
+                theme: 'ngsl_theme',
+                compactMode: 'ngsl_compact',
+                paginationMode: 'ngsl_pagination',
+                customDefs: 'ngsl_custom_defs'
             }
         };
 
@@ -517,20 +793,32 @@
         let filteredWords = [];
         let currentPage = 1;
         let sortBy = 'n';
-        let favorites = JSON.parse(localStorage.getItem('ngsl_favs') || '{}');
+        let sortDir = 'asc'; // 'asc' 或 'desc'
+        let favorites = JSON.parse(localStorage.getItem(CONFIG.storage.favorites) || '{}');
+        let customDefinitions = JSON.parse(localStorage.getItem(CONFIG.storage.customDefs) || '{}');
+        let isCompactMode = localStorage.getItem(CONFIG.storage.compactMode) === 'true';
+        let isPaginationEnabled = localStorage.getItem(CONFIG.storage.paginationMode) !== 'false';
 
         // ================= DOM 元素 =================
         const tableBody = document.getElementById('tableBody');
         const pagination = document.getElementById('pagination');
         const searchInput = document.getElementById('searchInput');
-        const sortSelect = document.getElementById('sortSelect');
         const modalOverlay = document.getElementById('modalOverlay');
-        const modalBody = document.getElementById('modalBody');
         const modalClose = document.getElementById('modalClose');
         const fileInput = document.getElementById('fileInput');
-        const loadDataBtn = document.getElementById('loadDataBtn');
         const emptyState = document.getElementById('emptyState');
         const dataTable = document.getElementById('dataTable');
+        const compactToggle = document.getElementById('compactToggle');
+        const paginationToggle = document.getElementById('paginationToggle');
+        const themeToggle = document.getElementById('themeToggle');
+        const modalTitle = document.getElementById('modalTitle');
+        const definitionEditor = document.getElementById('definitionEditor');
+        const addDefBtn = document.getElementById('addDefBtn');
+        const clearDefBtn = document.getElementById('clearDefBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const saveDefBtn = document.getElementById('saveDefBtn');
+
+        let currentEditingWord = null;
 
         // ================= 数据解析与加载 =================
         function parseTextData(text) {
@@ -538,6 +826,7 @@
             const result = [];
             for (let line of lines) {
                 if (!line || line.startsWith('Number') || line.startsWith('sheet_')) continue;
+                
                 // 兼容 Tab 分隔和逗号分隔
                 const parts = line.includes('\t') ? line.split('\t') : line.split(',');
                 const cleanParts = parts.map(p => p.trim()).filter(p => p !== '');
@@ -560,7 +849,7 @@
                         word: word,
                         forms: forms,
                         sfi: parseFloat(sfi),
-                        u: parseInt(u)
+                        u: parseInt(u) || 0
                     });
                 }
             }
@@ -576,8 +865,10 @@
                     emptyState.style.display = 'none';
                     dataTable.style.display = 'table';
                     filterAndSort();
+                    // 自动保存导入的数据到 localStorage（可选，大数据量可能不适合）
+                    // localStorage.setItem('ngsl_data', JSON.stringify(ALL_WORDS));
                 } else {
-                    alert("未能解析到数据，请检查文件格式。");
+                    alert("未能解析到数据，请检查文件格式。\n支持格式：序号, 单词, 词形, 词频, 使用频率");
                 }
             };
             reader.readAsText(file);
@@ -585,18 +876,23 @@
 
         // ================= 渲染逻辑 =================
         function renderTable() {
-            const start = (currentPage - 1) * CONFIG.page.size;
-            const end = start + CONFIG.page.size;
-            const pageData = filteredWords.slice(start, end);
+            const pageSize = isCompactMode ? CONFIG.page.compactSize : CONFIG.page.size;
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = isPaginationEnabled ? filteredWords.slice(start, end) : filteredWords;
 
             tableBody.innerHTML = pageData.map(item => {
                 const sfiWidth = Math.max(10, (item.sfi - 40) * 2.5);
                 const isFav = favorites[item.word] ? 'fav-active' : '';
+                const hasCustomDef = customDefinitions[item.word] ? true : false;
+                const formsClass = item.forms.length > 20 ? 'forms-cell expandable' : 'forms-cell';
+                const formsDisplay = item.forms.length > 30 ? item.forms.substring(0, 30) + '...' : item.forms;
+                
                 return `
-                    <tr onclick="fetchDictionary('${item.word}')">
+                    <tr>
                         <td>${item.n}</td>
-                        <td class="word-cell">${item.word}</td>
-                        <td class="forms-cell hide-mobile">${item.forms}</td>
+                        <td class="word-cell" onclick="toggleCustomDef('${item.word}')">${item.word}</td>
+                        <td class="${formsClass} hide-mobile" ${item.forms.length > 20 ? `onclick="expandForms('${item.word}', this)" title="${item.forms}"` : ''}>${formsDisplay}</td>
                         <td>
                             <div class="sfi-bar">
                                 <div class="sfi-track">
@@ -605,16 +901,32 @@
                                 <span class="sfi-val">${item.sfi}</span>
                             </div>
                         </td>
-                        <td class="hide-mobile" onclick="event.stopPropagation()">
+                        <td class="hide-mobile">
                             <button class="action-btn ${isFav}" onclick="toggleFav('${item.word}', this)">♥</button>
+                            ${hasCustomDef ? '<span style="color: var(--accent); margin-left: 4px;">📝</span>' : ''}
                         </td>
                     </tr>
+                    ${hasCustomDef ? `
+                    <tr class="custom-def-row">
+                        <td colspan="5">
+                            <div class="custom-def visible">
+                                <strong>自定义释义:</strong> ${customDefinitions[item.word]}
+                            </div>
+                        </td>
+                    </tr>
+                    ` : ''}
                 `;
             }).join('');
         }
 
         function renderPagination() {
-            const totalPages = Math.ceil(filteredWords.length / CONFIG.page.size);
+            if (!isPaginationEnabled) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            const pageSize = isCompactMode ? CONFIG.page.compactSize : CONFIG.page.size;
+            const totalPages = Math.ceil(filteredWords.length / pageSize);
             if (totalPages <= 1) {
                 pagination.innerHTML = '';
                 return;
@@ -649,7 +961,8 @@
         }
 
         function changePage(page) {
-            const totalPages = Math.ceil(filteredWords.length / CONFIG.page.size);
+            const pageSize = isCompactMode ? CONFIG.page.compactSize : CONFIG.page.size;
+            const totalPages = Math.ceil(filteredWords.length / pageSize);
             if (page < 1 || page > totalPages) return;
             currentPage = page;
             renderTable();
@@ -665,87 +978,41 @@
                 if (!query) return true;
                 if (item.word.toLowerCase().includes(query)) return true;
                 if (item.forms.toLowerCase().includes(query)) return true;
+                // 搜索自定义释义
+                if (customDefinitions[item.word] && customDefinitions[item.word].toLowerCase().includes(query)) return true;
                 return false;
             });
 
+            // 排序逻辑
             if (sortBy === 'n') {
-                filteredWords.sort((a, b) => a.n - b.n);
+                filteredWords.sort((a, b) => sortDir === 'asc' ? a.n - b.n : b.n - a.n);
             } else if (sortBy === 'word') {
-                filteredWords.sort((a, b) => a.word.localeCompare(b.word));
+                filteredWords.sort((a, b) => sortDir === 'asc' ? a.word.localeCompare(b.word) : b.word.localeCompare(a.word));
             } else if (sortBy === 'sfi') {
-                filteredWords.sort((a, b) => b.sfi - a.sfi);
+                filteredWords.sort((a, b) => sortDir === 'asc' ? a.sfi - b.sfi : b.sfi - a.sfi);
+            } else if (sortBy === 'forms') {
+                filteredWords.sort((a, b) => sortDir === 'asc' ? a.forms.localeCompare(b.forms) : b.forms.localeCompare(a.forms));
             }
 
             currentPage = 1;
             renderTable();
             renderPagination();
+            updateSortIndicators();
         }
 
-        // ================= 词典 API 调用 =================
-        async function fetchDictionary(word) {
-            if (!word) return;
-            modalOverlay.classList.add('active');
-            modalBody.innerHTML = `<div class="loader"><div></div>正在查询 "${word}"...</div>`;
-
-            try {
-                const url = new URL(CONFIG.dictionary.baseUrl + encodeURIComponent(word));
-                for (const [k, v] of Object.entries(CONFIG.dictionary.queryParams)) {
-                    url.searchParams.set(k, v);
-                }
-                if (CONFIG.dictionary.apiKey) {
-                    url.searchParams.set(CONFIG.dictionary.apiKeyParam, CONFIG.dictionary.apiKey);
-                }
-
-                const response = await fetch(url.toString());
-                if (!response.ok) {
-                    throw new Error('未找到该单词的释义');
-                }
-                
-                const data = await response.json();
-                renderDictionaryModal(word, data);
-            } catch (error) {
-                modalBody.innerHTML = `
-                    <h2>${word}</h2>
-                    <div class="error-msg">
-                        <p>❌ ${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-
-        function renderDictionaryModal(word, data) {
-            let html = `<h2>${word}</h2>`;
-            
-            const firstEntry = data[0];
-            if (firstEntry.phonetic) {
-                html += `<div class="phonetic">${firstEntry.phonetic}</div>`;
-            } else if (firstEntry.phonetics && firstEntry.phonetics.length > 0) {
-                const ph = firstEntry.phonetics.find(p => p.text) || firstEntry.phonetics[0];
-                if (ph && ph.text) html += `<div class="phonetic">${ph.text}</div>`;
-            }
-
-            data.forEach(entry => {
-                if (entry.meanings && entry.meanings.length > 0) {
-                    entry.meanings.forEach(meaning => {
-                        html += `<div class="dict-section">
-                            <div class="pos">${meaning.partOfSpeech}</div>`;
-                        
-                        meaning.definitions.slice(0, 4).forEach(def => {
-                            html += `<div class="definition">${def.definition}</div>`;
-                            if (def.example) {
-                                html += `<div class="example">"${def.example}"</div>`;
-                            }
-                        });
-                        
-                        html += `</div>`;
-                    });
+        function updateSortIndicators() {
+            document.querySelectorAll('th[data-sort]').forEach(th => {
+                th.classList.remove('active-sort', 'desc');
+                if (th.dataset.sort === sortBy) {
+                    th.classList.add('active-sort');
+                    if (sortDir === 'desc') {
+                        th.classList.add('desc');
+                    }
                 }
             });
-
-            modalBody.innerHTML = html;
         }
 
-        // ================= 交互事件 =================
+        // ================= 交互功能 =================
         function toggleFav(word, btn) {
             if (favorites[word]) {
                 delete favorites[word];
@@ -754,7 +1021,45 @@
                 favorites[word] = true;
                 btn.classList.add('fav-active');
             }
-            localStorage.setItem('ngsl_favs', JSON.stringify(favorites));
+            localStorage.setItem(CONFIG.storage.favorites, JSON.stringify(favorites));
+        }
+
+        function expandForms(word, cell) {
+            const item = ALL_WORDS.find(w => w.word === word);
+            if (item) {
+                // 创建或更新模态框内容
+                const modalBody = document.getElementById('modalBody');
+                modalBody.innerHTML = `
+                    <h2>${word}</h2>
+                    <div class="dict-section">
+                        <div class="pos">完整词形</div>
+                        <div class="definition">${item.forms}</div>
+                    </div>
+                `;
+                modalOverlay.classList.add('active');
+            }
+        }
+
+        function toggleCustomDef(word) {
+            currentEditingWord = word;
+            modalTitle.textContent = `编辑自定义释义: ${word}`;
+            definitionEditor.value = customDefinitions[word] || '';
+            modalOverlay.classList.add('active');
+            definitionEditor.focus();
+        }
+
+        function saveCustomDef() {
+            if (currentEditingWord) {
+                const def = definitionEditor.value.trim();
+                if (def) {
+                    customDefinitions[currentEditingWord] = def;
+                } else {
+                    delete customDefinitions[currentEditingWord];
+                }
+                localStorage.setItem(CONFIG.storage.customDefs, JSON.stringify(customDefinitions));
+                modalOverlay.classList.remove('active');
+                renderTable(); // 重新渲染表格以显示自定义释义
+            }
         }
 
         // 搜索防抖
@@ -767,15 +1072,16 @@
         // 排序绑定
         document.querySelectorAll('th[data-sort]').forEach(th => {
             th.addEventListener('click', () => {
-                sortBy = th.dataset.sort;
-                sortSelect.value = sortBy;
+                const sortKey = th.dataset.sort;
+                if (sortBy === sortKey) {
+                    // 切换排序方向
+                    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortBy = sortKey;
+                    sortDir = 'asc';
+                }
                 filterAndSort();
             });
-        });
-
-        sortSelect.addEventListener('change', (e) => {
-            sortBy = e.target.value;
-            filterAndSort();
         });
 
         // Modal 关闭
@@ -791,32 +1097,94 @@
             }
         });
 
-        // 文件导入按钮
-        loadDataBtn.addEventListener('click', () => fileInput.click());
+        // 自定义释义编辑
+        addDefBtn.addEventListener('click', () => {
+            definitionEditor.focus();
+        });
+
+        clearDefBtn.addEventListener('click', () => {
+            if (confirm('确定要清除当前单词的自定义释义吗？')) {
+                definitionEditor.value = '';
+            }
+        });
+
+        cancelEditBtn.addEventListener('click', () => {
+            modalOverlay.classList.remove('active');
+        });
+
+        saveDefBtn.addEventListener('click', saveCustomDef);
+
+        // 文件导入
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) loadDataFile(file);
         });
 
+        // 紧凑模式切换
+        compactToggle.addEventListener('click', () => {
+            isCompactMode = !isCompactMode;
+            localStorage.setItem(CONFIG.storage.compactMode, isCompactMode);
+            
+            if (isCompactMode) {
+                document.body.classList.add('compact-mode');
+                compactToggle.textContent = '📐 标准';
+            } else {
+                document.body.classList.remove('compact-mode');
+                compactToggle.textContent = '📐 紧凑';
+            }
+            
+            currentPage = 1;
+            renderTable();
+            renderPagination();
+        });
+
+        // 分页模式切换
+        paginationToggle.addEventListener('click', () => {
+            isPaginationEnabled = !isPaginationEnabled;
+            localStorage.setItem(CONFIG.storage.paginationMode, isPaginationEnabled);
+            
+            if (isPaginationEnabled) {
+                document.body.classList.remove('no-pagination');
+                paginationToggle.textContent = '📄 分页';
+            } else {
+                document.body.classList.add('no-pagination');
+                paginationToggle.textContent = '📄 全部';
+            }
+            
+            renderTable();
+            renderPagination();
+        });
+
         // 主题切换
-        const themeToggle = document.getElementById('themeToggle');
-        const savedTheme = localStorage.getItem('ngsl_theme') || 'light';
+        const savedTheme = localStorage.getItem(CONFIG.storage.theme) || 'light';
         if (savedTheme === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
             themeToggle.textContent = '☀️';
         }
+
         themeToggle.addEventListener('click', () => {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             if (currentTheme === 'dark') {
                 document.documentElement.removeAttribute('data-theme');
                 themeToggle.textContent = '🌙';
-                localStorage.setItem('ngsl_theme', 'light');
+                localStorage.setItem(CONFIG.storage.theme, 'light');
             } else {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 themeToggle.textContent = '☀️';
-                localStorage.setItem('ngsl_theme', 'dark');
+                localStorage.setItem(CONFIG.storage.theme, 'dark');
             }
         });
+
+        // 初始化模式状态
+        if (isCompactMode) {
+            document.body.classList.add('compact-mode');
+            compactToggle.textContent = '📐 标准';
+        }
+
+        if (!isPaginationEnabled) {
+            document.body.classList.add('no-pagination');
+            paginationToggle.textContent = '📄 全部';
+        }
 
         // 初始化尝试自动加载本地 data.txt
         async function autoLoad() {
@@ -835,7 +1203,21 @@
                 console.log("自动加载本地文件失败，请点击按钮手动导入。");
             }
         }
-        autoLoad();
+        
+        // 如果 localStorage 中有保存的数据，优先使用
+        const savedData = localStorage.getItem('ngsl_data');
+        if (savedData) {
+            try {
+                ALL_WORDS = JSON.parse(savedData);
+                emptyState.style.display = 'none';
+                dataTable.style.display = 'table';
+                filterAndSort();
+            } catch (e) {
+                autoLoad();
+            }
+        } else {
+            autoLoad();
+        }
     </script>
 </body>
 </html>
