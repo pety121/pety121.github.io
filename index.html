@@ -505,7 +505,7 @@
           // 跳过可能的表头行（包含 Number 或 Word 字样）
           if (/^(Number|Word|序号|单词)/i.test(line)) continue;
           
-          const parts = line.split('\t');
+          const parts = line.split(',');
           if (parts.length < 3) continue; // 至少需要单词、序号、SFI
           
           const word = parts[0].trim();
