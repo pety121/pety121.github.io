@@ -1,667 +1,1245 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NGSL 词汇查询</title>
-<style>
-  :root {
-    --bg-color: #fdfbf7;
-    --text-color: #2c3e2e;
-    --header-bg: #f4f0e6;
-    --border-color: #dcd7c8;
-    --primary-color: #2e7d32;
-    --hover-bg: #eef5e9;
-    --even-row-bg: #faf8f2;
-    --placeholder-color: #8c8c8c;
-    --modal-bg: #ffffff;
-    --shadow: 0 2px 8px rgba(0,0,0,0.1);
-    --font-size: 14px;
-  }
-
-  [data-theme="dark"] {
-    --bg-color: #1e1e1e;
-    --text-color: #d4d4d4;
-    --header-bg: #2a2a2a;
-    --border-color: #3c3c3c;
-    --primary-color: #4db6ac;
-    --hover-bg: #333333;
-    --even-row-bg: #252525;
-    --placeholder-color: #666666;
-    --modal-bg: #2a2a2a;
-    --shadow: 0 4px 12px rgba(0,0,0,0.4);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-size: var(--font-size);
-    line-height: 1.5;
-  }
-
-  /* 常驻顶部状态栏 */
-  .toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background-color: var(--header-bg);
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    gap: 15px;
-  }
-
-  .left-controls, .right-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-  
-  .search-container {
-    flex-grow: 1;
-    max-width: 450px;
-    margin: 0 auto;
-  }
-
-  .search-input {
-    width: 100%;
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 1px solid var(--border-color);
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-size: var(--font-size);
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-
-  .search-input:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.1);
-  }
-
-  .theme-btn {
-    background: none;
-    border: 1px solid var(--border-color);
-    border-radius: 50%;
-    width: 34px;
-    height: 34px;
-    cursor: pointer;
-    font-size: 16px;
-    color: var(--text-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s;
-  }
-  
-  .theme-btn:hover {
-    background: var(--hover-bg);
-  }
-
-  /* 分页/不分页按钮组 */
-  .segmented-control {
-    display: flex;
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    overflow: hidden;
-  }
-
-  .segmented-control button {
-    background: none;
-    border: none;
-    padding: 7px 16px;
-    cursor: pointer;
-    color: var(--text-color);
-    font-size: 13px;
-    transition: background 0.2s, color 0.2s;
-  }
-
-  .segmented-control button.active {
-    background-color: var(--primary-color);
-    color: #fff;
-  }
-
-  .table-container {
-    width: 100%;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed; /* 严格固定列宽 */
-  }
-
-  th, td {
-    padding: 8px 10px;
-    text-align: left;
-    border: 1px solid var(--border-color); /* Excel 式内部网格线 */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: middle;
-  }
-
-  th {
-    background-color: var(--header-bg);
-    cursor: pointer;
-    user-select: none;
-    position: sticky;
-    top: 55px; /* 紧贴常驻状态栏下方 */
-    z-index: 10;
-  }
-  
-  th:hover {
-    background-color: var(--hover-bg);
-  }
-
-  tbody tr:nth-child(even) {
-    background-color: var(--even-row-bg);
-  }
-  
-  tbody tr:hover {
-    background-color: var(--hover-bg);
-  }
-
-  /* 各列严格宽度分配 */
-  th:nth-child(1), td:nth-child(1) { width: 50px; text-align: center; }
-  th:nth-child(2), td:nth-child(2) { width: 150px; }
-  th:nth-child(3), td:nth-child(3) { width: auto; cursor: pointer; } /* 占据剩余空间 */
-  th:nth-child(4), td:nth-child(4) { width: 100px; }
-  th:nth-child(5), td:nth-child(5) { width: 50px; text-align: center; }
-
-  .word-cell { cursor: pointer; color: var(--primary-color); font-weight: 500; }
-  .forms-cell { color: var(--text-color); }
-  
-  /* SFI 进度条 */
-  .sfi-bar-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .sfi-track {
-    width: 50px;
-    height: 6px;
-    background-color: var(--border-color);
-    border-radius: 3px;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  .sfi-fill {
-    height: 100%;
-    background-color: var(--primary-color);
-    border-radius: 3px;
-  }
-  .sfi-num { font-size: 12px; min-width: 35px; }
-
-  .fav-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    color: var(--border-color);
-    transition: color 0.2s, transform 0.2s;
-  }
-  .fav-btn:hover { transform: scale(1.2); }
-  .fav-btn.fav-active { color: #e53935; }
-
-  /* 弹窗 */
-  .modal-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.5);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
-  }
-  .modal-overlay.active { display: flex; }
-  .modal-content {
-    background-color: var(--modal-bg);
-    padding: 24px;
-    border-radius: 8px;
-    max-width: 80%;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow);
-    word-wrap: break-word;
-    white-space: normal;
-    line-height: 1.6;
-  }
-
-  /* 分页控件区 */
-  .pagination-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 16px;
-    gap: 8px;
-    border-top: 1px solid var(--border-color);
-  }
-  
-  .pagination-container button {
-    background: none;
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    padding: 5px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  .pagination-container button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  
-  .pagination-container button.active {
-    background-color: var(--primary-color);
-    color: #fff;
-  }
-
-  .sort-arrow {
-    font-size: 12px;
-    margin-left: 4px;
-    opacity: 0.7;
-  }
-
-  /* 手机端响应式适配 */
-  @media (max-width: 600px) {
-    .toolbar { 
-      flex-wrap: wrap; 
-      padding: 8px 10px; 
-      gap: 8px;
-    }
-    .search-container { 
-      order: 3; 
-      flex-basis: 100%; 
-      max-width: 100%; 
-    }
-    th { top: 105px; } /* 因工具栏换行变高，调整表头吸顶距离 */
-    
-    th:nth-child(1), td:nth-child(1) { width: 35px; padding: 8px 4px; }
-    th:nth-child(2), td:nth-child(2) { width: 80px; }
-    th:nth-child(4), td:nth-child(4) { width: 70px; }
-    th:nth-child(5), td:nth-child(5) { width: 35px; padding: 8px 4px; }
-    
-    .sfi-num { display: none; }
-    .sfi-track { width: 40px; }
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NGSL 词汇表查询</title>
+    <style>
+        /* ===== 全局重置 & 基础 ===== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #fdf6ec;
+            color: #2d2d2d;
+            transition: background 0.3s, color 0.3s;
+            padding: 16px 20px;
+            min-height: 100vh;
+        }
+        /* ===== 主题变量 ===== */
+        body {
+            --bg: #fdf6ec;
+            --bg-card: #ffffff;
+            --text: #2d2d2d;
+            --text-light: #5a5a5a;
+            --border: #d4c9b8;
+            --header-bg: #e8f0e6;
+            --header-text: #1d3b1a;
+            --hover-bg: #f0f5ee;
+            --accent: #2d5a27;
+            --accent-light: #4a7a44;
+            --shadow: rgba(0, 0, 0, 0.06);
+            --progress-bg: #e0e0e0;
+            --progress-fill: #2d5a27;
+            --modal-overlay: rgba(0, 0, 0, 0.45);
+            --modal-bg: #ffffff;
+            --modal-text: #2d2d2d;
+            --error-bg: #fce4e4;
+            --error-border: #d32f2f;
+            --error-text: #b71c1c;
+            --status-bg: #ffffffcc;
+            --btn-bg: #e8f0e6;
+            --btn-text: #1d3b1a;
+            --btn-hover: #d0e0cc;
+            --btn-active: #2d5a27;
+            --btn-active-text: #ffffff;
+            --favorite-active: #e53935;
+            --favorite-inactive: #999;
+            --scrollbar-track: #f0f0f0;
+            --scrollbar-thumb: #c0c0c0;
+        }
+        body.theme-dark {
+            --bg: #1e1e1e;
+            --bg-card: #2a2a2a;
+            --text: #e8e8e8;
+            --text-light: #b0b0b0;
+            --border: #3d3d3d;
+            --header-bg: #2a3a2a;
+            --header-text: #b8d9b8;
+            --hover-bg: #333a33;
+            --accent: #4db6ac;
+            --accent-light: #6ccac0;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --progress-bg: #3d3d3d;
+            --progress-fill: #4db6ac;
+            --modal-overlay: rgba(0, 0, 0, 0.7);
+            --modal-bg: #2a2a2a;
+            --modal-text: #e8e8e8;
+            --error-bg: #3d1a1a;
+            --error-border: #d32f2f;
+            --error-text: #ff8a80;
+            --status-bg: #2a2a2acc;
+            --btn-bg: #3a3a3a;
+            --btn-text: #d0d0d0;
+            --btn-hover: #4a4a4a;
+            --btn-active: #4db6ac;
+            --btn-active-text: #1e1e1e;
+            --favorite-active: #ff6b6b;
+            --favorite-inactive: #777;
+            --scrollbar-track: #2a2a2a;
+            --scrollbar-thumb: #4a4a4a;
+        }
+        /* ===== 滚动条 ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
+        }
+        /* ===== 顶部状态栏 ===== */
+        .status-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--status-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 10px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 12px var(--shadow);
+            border: 1px solid var(--border);
+            transition: background 0.3s, border 0.3s;
+        }
+        .status-bar .left-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .status-bar .center-group {
+            flex: 1;
+            min-width: 140px;
+            display: flex;
+            justify-content: center;
+        }
+        .status-bar .right-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .status-bar .search-input {
+            width: 100%;
+            max-width: 420px;
+            padding: 7px 14px;
+            border-radius: 24px;
+            border: 1.5px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+        .status-bar .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(77, 182, 172, 0.2);
+        }
+        .status-bar .search-input::placeholder {
+            color: var(--text-light);
+            opacity: 0.6;
+        }
+        .theme-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 8px;
+            transition: background 0.2s;
+            line-height: 1;
+        }
+        .theme-btn:hover {
+            background: var(--hover-bg);
+        }
+        .mode-btn {
+            padding: 5px 16px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .mode-btn:hover {
+            background: var(--btn-hover);
+        }
+        .mode-btn.active {
+            background: var(--btn-active);
+            color: var(--btn-active-text);
+            border-color: var(--btn-active);
+        }
+        .mode-btn:not(:last-child) {
+            margin-right: 2px;
+        }
+        /* ===== 表格容器 ===== */
+        .table-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 2px 16px var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: background 0.3s, border 0.3s;
+        }
+        .table-scroll {
+            overflow-x: auto;
+            padding: 0 2px 2px 2px;
+        }
+        .table-scroll table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .table-scroll table th,
+        .table-scroll table td {
+            padding: 8px 10px;
+            text-align: left;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background 0.15s, color 0.15s, border 0.15s;
+        }
+        .table-scroll table th {
+            background: var(--header-bg);
+            color: var(--header-text);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .table-scroll table th .sort-arrow {
+            display: inline-block;
+            margin-left: 4px;
+            font-size: 12px;
+        }
+        .table-scroll table th:hover {
+            background: var(--hover-bg);
+        }
+        .table-scroll table tbody tr {
+            transition: background 0.15s;
+        }
+        .table-scroll table tbody tr:hover {
+            background: var(--hover-bg);
+        }
+        .table-scroll table tbody tr td {
+            background: var(--bg-card);
+            color: var(--text);
+        }
+        /* ===== 列宽 ===== */
+        .col-seq {
+            width: 50px;
+            text-align: center;
+        }
+        .col-word {
+            width: 150px;
+            cursor: pointer;
+        }
+        .col-word:hover {
+            color: var(--accent);
+        }
+        .col-forms {
+            width: auto;
+            cursor: pointer;
+        }
+        .col-sfi {
+            width: 100px;
+        }
+        .col-fav {
+            width: 50px;
+            text-align: center;
+        }
+        /* ===== SFI 进度条 ===== */
+        .sfi-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .sfi-cell .sfi-value {
+            font-weight: 600;
+            min-width: 32px;
+            font-size: 13px;
+            color: var(--text);
+        }
+        .sfi-cell .sfi-bar-wrap {
+            flex: 1;
+            height: 6px;
+            background: var(--progress-bg);
+            border-radius: 4px;
+            overflow: hidden;
+            min-width: 20px;
+        }
+        .sfi-cell .sfi-bar-fill {
+            height: 100%;
+            background: var(--progress-fill);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        /* ===== 收藏按钮 ===== */
+        .fav-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+            transition: transform 0.15s, background 0.15s;
+            line-height: 1;
+            color: var(--favorite-inactive);
+        }
+        .fav-btn:hover {
+            transform: scale(1.2);
+            background: var(--hover-bg);
+        }
+        .fav-btn.active {
+            color: var(--favorite-active);
+        }
+        /* ===== 分页控件 ===== */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-card);
+            border-radius: 0 0 12px 12px;
+            transition: background 0.3s, border 0.3s;
+            flex-wrap: wrap;
+        }
+        .pagination.hidden {
+            display: none;
+        }
+        .pagination .page-btn {
+            padding: 5px 18px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .pagination .page-btn:hover:not(:disabled) {
+            background: var(--btn-hover);
+        }
+        .pagination .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pagination .page-info {
+            font-size: 14px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+        /* ===== 错误提示 ===== */
+        .error-banner {
+            max-width: 1200px;
+            margin: 0 auto 16px auto;
+            padding: 14px 20px;
+            background: var(--error-bg);
+            border: 1.5px solid var(--error-border);
+            border-radius: 10px;
+            color: var(--error-text);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .error-banner.hidden {
+            display: none;
+        }
+        .error-banner .error-icon {
+            font-size: 26px;
+        }
+        .error-banner .error-msg {
+            flex: 1;
+        }
+        .error-banner .error-hint {
+            font-weight: 400;
+            opacity: 0.85;
+            font-size: 14px;
+        }
+        /* ===== 模态框 ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: var(--modal-overlay);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            padding: 24px;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-box {
+            background: var(--modal-bg);
+            color: var(--modal-text);
+            border-radius: 16px;
+            padding: 28px 32px;
+            max-width: 560px;
+            width: 100%;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(0.92) translateY(12px);
+            transition: transform 0.3s ease, background 0.3s, color 0.3s;
+            border: 1px solid var(--border);
+        }
+        .modal-overlay.open .modal-box {
+            transform: scale(1) translateY(0);
+        }
+        .modal-box .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 0 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .modal-box .modal-close:hover {
+            color: var(--text);
+        }
+        .modal-box .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+        .modal-box .modal-body {
+            font-size: 16px;
+            line-height: 1.6;
+            word-break: break-word;
+            white-space: pre-wrap;
+            color: var(--text);
+        }
+        /* ===== 空状态 ===== */
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-light);
+            font-size: 16px;
+        }
+        /* ===== 响应式 ===== */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px 10px;
+            }
+            .status-bar {
+                padding: 8px 12px;
+                gap: 8px;
+                border-radius: 10px;
+            }
+            .status-bar .center-group {
+                flex: 1 1 100%;
+                order: 3;
+            }
+            .status-bar .search-input {
+                max-width: 100%;
+                font-size: 15px;
+                padding: 8px 14px;
+            }
+            .status-bar .left-group {
+                order: 1;
+            }
+            .status-bar .right-group {
+                order: 2;
+            }
+            .mode-btn {
+                padding: 4px 12px;
+                font-size: 13px;
+            }
+            .theme-btn {
+                font-size: 20px;
+            }
+            /* 列宽重分配 */
+            .col-seq {
+                width: 35px;
+                font-size: 12px;
+            }
+            .col-word {
+                width: 80px;
+                font-size: 13px;
+            }
+            .col-forms {
+                font-size: 13px;
+            }
+            .col-sfi {
+                width: 70px;
+            }
+            .col-fav {
+                width: 35px;
+            }
+            .sfi-cell .sfi-value {
+                display: none;
+            }
+            .sfi-cell .sfi-bar-wrap {
+                min-width: 12px;
+            }
+            .table-scroll table {
+                font-size: 13px;
+            }
+            .table-scroll table th,
+            .table-scroll table td {
+                padding: 6px 6px;
+            }
+            .fav-btn {
+                font-size: 17px;
+                padding: 0 2px;
+            }
+            .pagination {
+                gap: 10px;
+                padding: 10px 12px;
+            }
+            .pagination .page-btn {
+                padding: 4px 14px;
+                font-size: 13px;
+            }
+            .modal-box {
+                padding: 20px 18px;
+                max-width: 94%;
+            }
+            .error-banner {
+                padding: 12px 14px;
+                font-size: 14px;
+            }
+        }
+        @media (max-width: 400px) {
+            .col-seq {
+                width: 30px;
+                font-size: 11px;
+            }
+            .col-word {
+                width: 65px;
+                font-size: 12px;
+            }
+            .col-sfi {
+                width: 58px;
+            }
+            .col-fav {
+                width: 30px;
+            }
+            .table-scroll table th,
+            .table-scroll table td {
+                padding: 4px 4px;
+                font-size: 12px;
+            }
+            .status-bar {
+                padding: 6px 8px;
+                gap: 6px;
+            }
+            .mode-btn {
+                font-size: 12px;
+                padding: 3px 10px;
+            }
+        }
+        /* ===== 加载状态 ===== */
+        .loading-placeholder {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-light);
+            font-size: 16px;
+        }
+        .loading-placeholder .spinner {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        /* ===== 工具类 ===== */
+        .hidden {
+            display: none !important;
+        }
+        .text-center {
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-<header class="toolbar">
-  <div class="left-controls">
-    <button class="theme-btn" id="themeToggle">☀️</button>
-  </div>
-  
-  <div class="search-container">
-    <input type="text" class="search-input" id="searchInput" placeholder="搜索单词或词形...">
-  </div>
-  
-  <div class="right-controls">
-    <div class="segmented-control">
-      <button id="btnPaged" class="active">分页</button>
-      <button id="btnAll">不分页</button>
+    <!-- ===== 顶部状态栏 ===== -->
+    <header class="status-bar" id="statusBar">
+        <div class="left-group">
+            <button class="theme-btn" id="themeToggle" aria-label="切换主题">☀️</button>
+        </div>
+        <div class="center-group">
+            <input class="search-input" id="searchInput" type="text" placeholder="搜索单词或相关词形…" autocomplete="off">
+        </div>
+        <div class="right-group">
+            <button class="mode-btn active" data-mode="paged" id="modePaged">分页</button>
+            <button class="mode-btn" data-mode="all" id="modeAll">不分页</button>
+        </div>
+    </header>
+
+    <!-- ===== 错误横幅 ===== -->
+    <div class="error-banner hidden" id="errorBanner">
+        <span class="error-icon">⚠️</span>
+        <span class="error-msg" id="errorMsg">数据加载失败</span>
+        <span class="error-hint">建议使用本地服务器（如 VS Code Live Server）运行</span>
     </div>
-  </div>
-</header>
 
-<div class="table-container">
-  <table id="dataTable">
-    <thead>
-      <tr>
-        <th data-sort="index"># <span class="sort-arrow"></span></th>
-        <th data-sort="word">单词 <span class="sort-arrow"></span></th>
-        <th data-sort="forms">相关词形 <span class="sort-arrow"></span></th>
-        <th data-sort="sfi">SFI词频 <span class="sort-arrow"></span></th>
-        <th>操作</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody">
-      <tr><td colspan="5" style="text-align: center; padding: 20px;">数据加载中...</td></tr>
-    </tbody>
-  </table>
-</div>
+    <!-- ===== 表格容器 ===== -->
+    <div class="table-wrapper">
+        <div class="table-scroll" id="tableScroll">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th class="col-seq" data-sort="seq" id="sortSeq">序号 <span class="sort-arrow">↑</span></th>
+                        <th class="col-word" data-sort="word" id="sortWord">单词 <span class="sort-arrow"></span></th>
+                        <th class="col-forms" data-sort="">相关词形</th>
+                        <th class="col-sfi" data-sort="sfi" id="sortSfi">SFI词频 <span class="sort-arrow"></span></th>
+                        <th class="col-fav">收藏</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="5" class="loading-placeholder">
+                            <div class="spinner"></div>
+                            <div>加载数据中…</div>
+                        </td></tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- ===== 分页控件 ===== -->
+        <div class="pagination" id="pagination">
+            <button class="page-btn" id="prevPage" disabled>上一页</button>
+            <span class="page-info" id="pageInfo">第 1 / 1 页</span>
+            <button class="page-btn" id="nextPage" disabled>下一页</button>
+        </div>
+    </div>
 
-<div class="pagination-container" id="paginationContainer" style="display: none;"></div>
+    <!-- ===== 模态框 ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <button class="modal-close" id="modalCloseBtn">✕</button>
+            <div class="modal-title" id="modalTitle">完整内容</div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
 
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal-content" id="modalContent"></div>
-</div>
-
-<script>
-  let allData = [];
-  let filteredData = [];
-  let currentPage = 1;
-  const pageSize = 50;
-  let isPaged = localStorage.getItem('ngsl_isPaged') !== 'false'; // 默认分页
-  let sortColumn = 'index';
-  let sortDir = 'asc';
-  let favorites = JSON.parse(localStorage.getItem('ngsl_favs') || '[]');
-  let currentTheme = localStorage.getItem('ngsl_theme') || 'light';
-
-  // DOM 元素绑定
-  const tableBody = document.getElementById('tableBody');
-  const searchInput = document.getElementById('searchInput');
-  const themeToggle = document.getElementById('themeToggle');
-  const btnPaged = document.getElementById('btnPaged');
-  const btnAll = document.getElementById('btnAll');
-  const modalOverlay = document.getElementById('modalOverlay');
-  const modalContent = document.getElementById('modalContent');
-  const paginationContainer = document.getElementById('paginationContainer');
-
-  // 初始化
-  function init() {
-    applyTheme();
-    applyPagedState();
-    loadData();
-    bindEvents();
-  }
-
-  // 拉取并解析数据
-  async function loadData() {
-    try {
-      const response = await fetch('data.csv');
-      if (!response.ok) throw new Error('网络响应异常');
-      const text = await response.text();
-      const rows = parseCSV(text);
-      
-      allData = rows.filter(r => r.length >= 4).map((r, i) => {
-        return {
-          index: parseInt(r[0]) || (i + 1),
-          word: (r[1] || '').trim(),
-          forms: (r[2] || '').trim(),
-          sfi: parseFloat(r[3]) || 0,
-          freq: r[4] ? parseInt(r[4].replace(/,/g, '')) : 0 // 兼容有无频率列
+    <script>
+        // ================================================================
+        //  一、常量与配置
+        // ================================================================
+        const DATA_FILE = 'data.txt'; // 数据文件名，用户可改为 .csv 等
+        const PAGE_SIZE = 20;
+        const STORAGE_KEYS = {
+            THEME: 'ngsl_theme',
+            PAGED_MODE: 'ngsl_paged_mode',
+            FAVORITES: 'ngsl_favorites',
         };
-      });
-      
-      filteredData = [...allData];
-      renderTable();
-    } catch (error) {
-      tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:red;">加载 data.csv 失败: ${error.message}<br>请确保文件存在且同级目录。</td></tr>`;
-    }
-  }
 
-  // 健壮的 CSV 解析器（支持双引号包裹和内部逗号）
-  function parseCSV(text) {
-    const rows = [];
-    let currentRow = [];
-    let currentField = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      const nextChar = text[i + 1];
-      
-      if (char === '"' && inQuotes && nextChar === '"') {
-        currentField += '"'; // 处理转义的双引号
-        i++;
-      } else if (char === '"') {
-        inQuotes = !inQuotes; // 进出引号，不把引号本身加入字段
-      } else if (char === ',' && !inQuotes) {
-        currentRow.push(currentField);
-        currentField = '';
-      } else if ((char === '\n' || char === '\r') && !inQuotes) {
-        if (char === '\r' && nextChar === '\n') i++;
-        currentRow.push(currentField);
-        if (currentRow.some(c => c.trim() !== '')) rows.push(currentRow);
-        currentRow = [];
-        currentField = '';
-      } else {
-        currentField += char;
-      }
-    }
-    if (currentField !== '' || currentRow.length > 0) {
-      currentRow.push(currentField);
-      if (currentRow.some(c => c.trim() !== '')) rows.push(currentRow);
-    }
-    return rows;
-  }
+        // ================================================================
+        //  二、状态
+        // ================================================================
+        let allData = []; // 全部数据（内存数组）
+        let filteredData = []; // 当前搜索/过滤后的数据
+        let currentPage = 1;
+        let totalPages = 1;
+        let sortColumn = 'seq'; // 'seq' | 'word' | 'sfi'
+        let sortAsc = true; // true=升序，false=降序
+        let isPagedMode = true; // true=分页，false=不分页
+        let searchKeyword = '';
+        let favorites = {}; // { word: true, ... }
+        let isDarkTheme = false;
 
-  // 渲染主表格
-  function renderTable() {
-    if (filteredData.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px;">无匹配结果</td></tr>`;
-      paginationContainer.style.display = 'none';
-      return;
-    }
+        // DOM 引用
+        const $ = id => document.getElementById(id);
+        const tableBody = $('tableBody');
+        const pagination = $('pagination');
+        const prevBtn = $('prevPage');
+        const nextBtn = $('nextPage');
+        const pageInfo = $('pageInfo');
+        const searchInput = $('searchInput');
+        const themeToggle = $('themeToggle');
+        const modePaged = $('modePaged');
+        const modeAll = $('modeAll');
+        const errorBanner = $('errorBanner');
+        const errorMsg = $('errorMsg');
+        const modalOverlay = $('modalOverlay');
+        const modalBody = $('modalBody');
+        const modalTitle = $('modalTitle');
+        const modalCloseBtn = $('modalCloseBtn');
+        const sortSeq = $('sortSeq');
+        const sortWord = $('sortWord');
+        const sortSfi = $('sortSfi');
 
-    if (isPaged) {
-      paginationContainer.style.display = 'flex';
-      renderPagedData();
-    } else {
-      paginationContainer.style.display = 'none';
-      renderRows(filteredData);
-    }
-    updateSortArrows();
-  }
+        // ================================================================
+        //  三、示例数据（fallback）
+        // ================================================================
+        const SAMPLE_DATA = [
+            [1, 'the', '', 100, 100],
+            [2, 'be', 'am/is/are', 98, 95],
+            [3, 'to', '', 97, 93],
+            [4, 'of', '', 96, 90],
+            [5, 'and', '', 95, 88],
+            [6, 'a', 'an', 94, 85],
+            [7, 'in', '', 93, 82],
+            [8, 'that', '', 92, 80],
+            [9, 'have', 'has/had', 91, 78],
+            [10, 'I', '', 90, 75],
+            [11, 'it', '', 89, 73],
+            [12, 'for', '', 88, 70],
+            [13, 'not', '', 87, 68],
+            [14, 'on', '', 86, 65],
+            [15, 'with', '', 85, 63],
+            [16, 'he', 'him/his', 84, 60],
+            [17, 'as', '', 83, 58],
+            [18, 'you', 'your/yours', 82, 55],
+            [19, 'do', 'does/did', 81, 53],
+            [20, 'at', '', 80, 50],
+            [21, 'this', 'these', 79, 48],
+            [22, 'but', '', 78, 45],
+            [23, 'his', '', 77, 43],
+            [24, 'by', '', 76, 40],
+            [25, 'from', '', 75, 38],
+            [26, 'they', 'them/their', 74, 35],
+            [27, 'we', 'us/our', 73, 33],
+            [28, 'say', 'says/said', 72, 30],
+            [29, 'her', 'hers', 71, 28],
+            [30, 'she', 'her/hers', 70, 25],
+        ];
 
-  function renderPagedData() {
-    const totalPages = Math.ceil(filteredData.length / pageSize);
-    if (currentPage > totalPages) currentPage = totalPages;
-    if (currentPage < 1) currentPage = 1;
-    
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    const pageData = filteredData.slice(start, end);
-    
-    renderRows(pageData);
-    renderPagination(totalPages);
-  }
+        // ================================================================
+        //  四、CSV 解析器（健壮）
+        // ================================================================
+        function parseCSV(text) {
+            const rows = [];
+            let current = '';
+            let inQuotes = false;
+            let field = '';
+            const fields = [];
 
-  function renderRows(data) {
-    tableBody.innerHTML = '';
-    data.forEach(item => {
-      const tr = document.createElement('tr');
-      const isFav = favorites.includes(item.word);
-      const safeWord = item.word.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-      
-      tr.innerHTML = `
-        <td>${item.index}</td>
-        <td class="word-cell" onclick="handleWordClick('${safeWord}')">${item.word}</td>
-        <td class="forms-cell" onclick="checkEllipsisAndShowModal(this)">${item.forms}</td>
-        <td>
-          <div class="sfi-bar-container">
-            <div class="sfi-track">
-              <div class="sfi-fill" style="width: ${Math.min(Math.max(item.sfi, 0), 100)}%"></div>
-            </div>
-            <span class="sfi-num">${item.sfi.toFixed(1)}</span>
-          </div>
-        </td>
-        <td>
-          <button class="fav-btn ${isFav ? 'fav-active' : ''}" onclick="toggleFav('${safeWord}', this)">♥</button>
-        </td>
-      `;
-      tableBody.appendChild(tr);
-    });
-  }
+            // 规范化换行
+            const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  function renderPagination(totalPages) {
-    paginationContainer.innerHTML = '';
-    
-    const prevBtn = document.createElement('button');
-    prevBtn.textContent = '上一页';
-    prevBtn.disabled = currentPage === 1;
-    prevBtn.onclick = () => { currentPage--; renderTable(); };
-    paginationContainer.appendChild(prevBtn);
-    
-    let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages, startPage + 4);
-    if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
-    
-    for (let i = startPage; i <= endPage; i++) {
-      const pageBtn = document.createElement('button');
-      pageBtn.textContent = i;
-      if (i === currentPage) pageBtn.classList.add('active');
-      pageBtn.onclick = () => { currentPage = i; renderTable(); };
-      paginationContainer.appendChild(pageBtn);
-    }
-    
-    const nextBtn = document.createElement('button');
-    nextBtn.textContent = '下一页';
-    nextBtn.disabled = currentPage === totalPages;
-    nextBtn.onclick = () => { currentPage++; renderTable(); };
-    paginationContainer.appendChild(nextBtn);
-    
-    const info = document.createElement('span');
-    info.style.marginLeft = '10px';
-    info.style.color = 'var(--text-color)';
-    info.textContent = `${currentPage}/${totalPages} 页 (共${filteredData.length}条)`;
-    paginationContainer.appendChild(info);
-  }
+            for (let i = 0; i < normalized.length; i++) {
+                const ch = normalized[i];
+                const next = normalized[i + 1] || '';
 
-  function updateSortArrows() {
-    document.querySelectorAll('th').forEach(th => {
-      const arrow = th.querySelector('.sort-arrow');
-      if (!arrow) return;
-      if (th.dataset.sort === sortColumn) {
-        arrow.textContent = sortDir === 'asc' ? '↑' : '↓';
-      } else {
-        arrow.textContent = '';
-      }
-    });
-  }
+                if (inQuotes) {
+                    if (ch === '"' && next === '"') {
+                        field += '"';
+                        i++;
+                    } else if (ch === '"') {
+                        inQuotes = false;
+                    } else {
+                        field += ch;
+                    }
+                } else {
+                    if (ch === '"') {
+                        inQuotes = true;
+                    } else if (ch === ',') {
+                        fields.push(field.trim());
+                        field = '';
+                    } else if (ch === '\n') {
+                        fields.push(field.trim());
+                        field = '';
+                        if (fields.length === 4 || fields.length === 5) {
+                            rows.push(fields.slice());
+                        } else if (fields.length > 0 && !(fields.length === 1 && fields[0] === '')) {
+                            console.warn('[CSV] 跳过异常行 (列数=' + fields.length + '):', fields);
+                        }
+                        fields.length = 0;
+                    } else {
+                        field += ch;
+                    }
+                }
+            }
+            // 处理最后一行（无换行结尾）
+            if (field || fields.length) {
+                fields.push(field.trim());
+                if (fields.length === 4 || fields.length === 5) {
+                    rows.push(fields.slice());
+                } else if (fields.length > 0 && !(fields.length === 1 && fields[0] === '')) {
+                    console.warn('[CSV] 跳过异常行 (列数=' + fields.length + '):', fields);
+                }
+            }
+            return rows;
+        }
 
-  function sortData(column) {
-    if (sortColumn === column) {
-      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortColumn = column;
-      sortDir = 'asc';
-    }
-    
-    filteredData.sort((a, b) => {
-      let valA = a[column];
-      let valB = b[column];
-      if (typeof valA === 'string') {
-        return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      } else {
-        return sortDir === 'asc' ? valA - valB : valB - valA;
-      }
-    });
-    
-    currentPage = 1;
-    renderTable();
-  }
+        function normalizeRow(row) {
+            // row 可能为 4 或 5 列
+            // 标准: [序号, 单词, 相关词形, SFI词频, 使用频率]
+            let seq = parseInt(row[0], 10) || 0;
+            let word = (row[1] || '').trim();
+            let forms = row.length >= 3 ? (row[2] || '').trim() : '';
+            let sfi = parseFloat(row.length >= 4 ? row[3] : 0);
+            let freq = row.length >= 5 ? (row[4] || '').trim() : '';
 
-  function filterData(query) {
-    if (!query) {
-      filteredData = [...allData];
-    } else {
-      const q = query.toLowerCase();
-      filteredData = allData.filter(item => 
-        item.word.toLowerCase().includes(q) || 
-        item.forms.toLowerCase().includes(q)
-      );
-    }
-    currentPage = 1;
-    renderTable();
-  }
+            if (isNaN(sfi) || sfi < 0) sfi = 0;
+            if (sfi > 100) sfi = 100;
 
-  function toggleFav(word, btn) {
-    const index = favorites.indexOf(word);
-    if (index > -1) {
-      favorites.splice(index, 1);
-      btn.classList.remove('fav-active');
-    } else {
-      favorites.push(word);
-      btn.classList.add('fav-active');
-    }
-    localStorage.setItem('ngsl_favs', JSON.stringify(favorites));
-  }
+            return { seq, word, forms, sfi, freq };
+        }
 
-  // 预留：点击单词的后续释义展示逻辑
-  function handleWordClick(word) {
-    // 未来这里将用于展示从 CSV 读取的自定义释义。
-    // 目前无释义数据，暂为空函数。
-    console.log('查询单词:', word);
-  }
+        // ================================================================
+        //  五、数据加载
+        // ================================================================
+        async function loadData() {
+            try {
+                const resp = await fetch(DATA_FILE);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const text = await resp.text();
+                const rawRows = parseCSV(text);
+                if (rawRows.length === 0) throw new Error('数据文件为空或解析无结果');
+                const parsed = rawRows.map(normalizeRow);
+                // 过滤无效行（单词为空）
+                const valid = parsed.filter(item => item.word.length > 0);
+                if (valid.length === 0) throw new Error('没有有效的词汇数据');
+                return valid;
+            } catch (err) {
+                console.warn('[加载] 使用示例数据 (原因:', err.message, ')');
+                showError('加载 ' + DATA_FILE + ' 失败：' + err.message);
+                // 使用示例数据
+                return SAMPLE_DATA.map(row => normalizeRow(row));
+            }
+        }
 
-  // 检测文本是否被截断，若是则弹出模态框
-  function checkEllipsisAndShowModal(element) {
-    if (element.scrollWidth > element.clientWidth) {
-      modalContent.textContent = element.textContent;
-      modalOverlay.classList.add('active');
-    }
-  }
+        // ================================================================
+        //  六、渲染引擎
+        // ================================================================
+        function render() {
+            const source = searchKeyword ? filteredData : allData;
+            // 排序
+            const sorted = sortData(source);
+            // 分页
+            const paged = isPagedMode ? paginate(sorted) : sorted;
 
-  function applyTheme() {
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    themeToggle.textContent = currentTheme === 'light' ? '☀️' : '🌙';
-  }
+            renderTable(paged);
+            renderPagination(sorted.length);
+            updateSortIndicators();
+        }
 
-  function toggleTheme() {
-    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-    localStorage.setItem('ngsl_theme', currentTheme);
-    applyTheme();
-  }
+        function sortData(data) {
+            const copy = data.slice();
+            if (sortColumn === 'seq') {
+                copy.sort((a, b) => sortAsc ? a.seq - b.seq : b.seq - a.seq);
+            } else if (sortColumn === 'word') {
+                copy.sort((a, b) => {
+                    const x = a.word.toLowerCase();
+                    const y = b.word.toLowerCase();
+                    return sortAsc ? x.localeCompare(y) : y.localeCompare(x);
+                });
+            } else if (sortColumn === 'sfi') {
+                copy.sort((a, b) => sortAsc ? a.sfi - b.sfi : b.sfi - a.sfi);
+            }
+            return copy;
+        }
 
-  function applyPagedState() {
-    if (isPaged) {
-      btnPaged.classList.add('active');
-      btnAll.classList.remove('active');
-    } else {
-      btnPaged.classList.remove('active');
-      btnAll.classList.add('active');
-    }
-  }
+        function paginate(data) {
+            totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const end = Math.min(start + PAGE_SIZE, data.length);
+            return data.slice(start, end);
+        }
 
-  function togglePagedState(state) {
-    isPaged = state;
-    localStorage.setItem('ngsl_isPaged', isPaged);
-    applyPagedState();
-    currentPage = 1;
-    renderTable();
-  }
+        function renderTable(data) {
+            if (!data || data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="empty-state">暂无匹配的词汇</td></tr>`;
+                return;
+            }
+            let html = '';
+            for (const item of data) {
+                const isFav = !!favorites[item.word];
+                const favClass = isFav ? 'active' : '';
+                const sfiDisplay = Math.round(item.sfi);
+                const sfiClamped = Math.max(0, Math.min(100, item.sfi));
+                // 转义 HTML 防止 XSS（词形可能包含特殊字符）
+                const wordEsc = escapeHtml(item.word);
+                const formsEsc = escapeHtml(item.forms);
+                html += `<tr>
+                    <td class="col-seq text-center">${item.seq}</td>
+                    <td class="col-word" onclick="handleWordClick('${wordEsc}')" title="${wordEsc}">${wordEsc}</td>
+                    <td class="col-forms" onclick="handleFormsClick(this)" title="${formsEsc}">${formsEsc || '—'}</td>
+                    <td class="col-sfi">
+                        <div class="sfi-cell">
+                            <span class="sfi-value">${sfiDisplay}</span>
+                            <div class="sfi-bar-wrap"><div class="sfi-bar-fill" style="width:${sfiClamped}%;"></div></div>
+                        </div>
+                    </td>
+                    <td class="col-fav"><button class="fav-btn ${favClass}" data-word="${wordEsc}" onclick="toggleFavorite('${wordEsc}')">♥</button></td>
+                </tr>`;
+            }
+            tableBody.innerHTML = html;
+        }
 
-  function bindEvents() {
-    // 防抖搜索
-    searchInput.addEventListener('input', debounce((e) => {
-      filterData(e.target.value);
-    }, 300));
+        function renderPagination(totalCount) {
+            if (!isPagedMode || totalCount <= PAGE_SIZE) {
+                pagination.classList.add('hidden');
+                return;
+            }
+            pagination.classList.remove('hidden');
+            const current = Math.min(currentPage, totalPages);
+            pageInfo.textContent = `第 ${current} / ${totalPages} 页`;
+            prevBtn.disabled = current <= 1;
+            nextBtn.disabled = current >= totalPages;
+        }
 
-    themeToggle.addEventListener('click', toggleTheme);
-    
-    btnPaged.addEventListener('click', () => togglePagedState(true));
-    btnAll.addEventListener('click', () => togglePagedState(false));
+        function updateSortIndicators() {
+            // 清除所有箭头
+            [sortSeq, sortWord, sortSfi].forEach(el => {
+                const span = el.querySelector('.sort-arrow');
+                if (span) span.textContent = '';
+            });
+            const targetMap = { seq: sortSeq, word: sortWord, sfi: sortSfi };
+            const target = targetMap[sortColumn];
+            if (target) {
+                const span = target.querySelector('.sort-arrow');
+                if (span) span.textContent = sortAsc ? '↑' : '↓';
+            }
+        }
 
-    document.querySelectorAll('th[data-sort]').forEach(th => {
-      th.addEventListener('click', () => sortData(th.dataset.sort));
-    });
+        function escapeHtml(str) {
+            if (!str) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return str.replace(/[&<>"']/g, m => map[m]);
+        }
 
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) modalOverlay.classList.remove('active');
-    });
+        // ================================================================
+        //  七、排序
+        // ================================================================
+        function sortBy(column) {
+            if (sortColumn === column) {
+                sortAsc = !sortAsc;
+            } else {
+                sortColumn = column;
+                sortAsc = true;
+            }
+            currentPage = 1;
+            render();
+        }
 
-    // 快捷键绑定
-    document.addEventListener('keydown', (e) => {
-      if (e.key === '/' && document.activeElement !== searchInput) {
-        e.preventDefault();
-        searchInput.focus();
-      }
-      if (e.key === 'Escape') {
-        modalOverlay.classList.remove('active');
-      }
-    });
-  }
+        // ================================================================
+        //  八、搜索（防抖 300ms）
+        // ================================================================
+        let searchTimer = null;
 
-  function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-  }
+        function doSearch(keyword) {
+            searchKeyword = keyword.trim();
+            if (searchKeyword === '') {
+                filteredData = [];
+                // 恢复到用户偏好的分页模式
+                isPagedMode = getStoredPagedMode();
+                updateModeButtons();
+                currentPage = 1;
+                render();
+                return;
+            }
+            const kw = searchKeyword.toLowerCase();
+            filteredData = allData.filter(item =>
+                item.word.toLowerCase().includes(kw) ||
+                item.forms.toLowerCase().includes(kw)
+            );
+            // 搜索时强制切换到不分页
+            isPagedMode = false;
+            updateModeButtons();
+            currentPage = 1;
+            render();
+        }
 
-  init();
-</script>
+        function onSearchInput(e) {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                doSearch(e.target.value);
+            }, 300);
+        }
+
+        // ================================================================
+        //  九、收藏
+        // ================================================================
+        function loadFavorites() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.FAVORITES);
+                if (raw) {
+                    favorites = JSON.parse(raw);
+                    if (typeof favorites !== 'object' || Array.isArray(favorites)) favorites = {};
+                }
+            } catch (_) { favorites = {}; }
+        }
+
+        function saveFavorites() {
+            localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites));
+        }
+
+        function toggleFavorite(word) {
+            if (favorites[word]) {
+                delete favorites[word];
+            } else {
+                favorites[word] = true;
+            }
+            saveFavorites();
+            render(); // 刷新表格更新按钮状态
+        }
+
+        // ================================================================
+        //  十、主题
+        // ================================================================
+        function loadTheme() {
+            try {
+                const val = localStorage.getItem(STORAGE_KEYS.THEME);
+                if (val === 'dark') {
+                    isDarkTheme = true;
+                    document.body.classList.add('theme-dark');
+                    themeToggle.textContent = '🌙';
+                } else {
+                    isDarkTheme = false;
+                    document.body.classList.remove('theme-dark');
+                    themeToggle.textContent = '☀️';
+                }
+            } catch (_) {
+                isDarkTheme = false;
+                themeToggle.textContent = '☀️';
+            }
+        }
+
+        function toggleTheme() {
+            isDarkTheme = !isDarkTheme;
+            if (isDarkTheme) {
+                document.body.classList.add('theme-dark');
+                themeToggle.textContent = '🌙';
+                localStorage.setItem(STORAGE_KEYS.THEME, 'dark');
+            } else {
+                document.body.classList.remove('theme-dark');
+                themeToggle.textContent = '☀️';
+                localStorage.setItem(STORAGE_KEYS.THEME, 'light');
+            }
+        }
+
+        // ================================================================
+        //  十一、分页模式
+        // ================================================================
+        function getStoredPagedMode() {
+            try {
+                const val = localStorage.getItem(STORAGE_KEYS.PAGED_MODE);
+                if (val === 'all') return false;
+                return true; // 默认分页
+            } catch (_) { return true; }
+        }
+
+        function setPagedMode(paged) {
+            isPagedMode = paged;
+            localStorage.setItem(STORAGE_KEYS.PAGED_MODE, paged ? 'paged' : 'all');
+            currentPage = 1;
+            updateModeButtons();
+            render();
+        }
+
+        function updateModeButtons() {
+            if (isPagedMode) {
+                modePaged.classList.add('active');
+                modeAll.classList.remove('active');
+            } else {
+                modePaged.classList.remove('active');
+                modeAll.classList.add('active');
+            }
+        }
+
+        // ================================================================
+        //  十二、模态框
+        // ================================================================
+        let modalContent = '';
+
+        function openModal(title, content) {
+            modalTitle.textContent = title || '完整内容';
+            modalBody.textContent = content || '';
+            modalOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        // ================================================================
+        //  十三、交互事件（onclick 绑定）
+        // ================================================================
+        // 单词点击 —— 预留扩展
+        function handleWordClick(word) {
+            // 此处预留给未来扩展（如展示自定义释义弹窗）
+            // 当前仅做演示：在控制台输出
+            console.log('[handleWordClick] 点击单词:', word);
+            // 可在此添加自定义弹窗逻辑，例如：
+            // openModal('单词详情', '单词: ' + word + '\n此处可展示释义、例句等');
+        }
+
+        // 相关词形点击 —— 检测溢出，弹窗显示完整内容
+        function handleFormsClick(el) {
+            if (!el) return;
+            // 检测是否被截断（文本溢出）
+            const isOverflow = el.scrollWidth > el.clientWidth;
+            if (!isOverflow) return;
+            const text = el.textContent || '';
+            if (text.trim() === '' || text === '—') return;
+            openModal('完整词形', text);
+        }
+
+        // ================================================================
+        //  十四、错误提示
+        // ================================================================
+        function showError(msg) {
+            errorMsg.textContent = msg || '数据加载失败';
+            errorBanner.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorBanner.classList.add('hidden');
+        }
+
+        // ================================================================
+        //  十五、快捷键
+        // ================================================================
+        function handleKeydown(e) {
+            // 按下 / 聚焦搜索框（阻止默认）
+            if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const tag = document.activeElement ? document.activeElement.tagName : '';
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+                    e.preventDefault();
+                    searchInput.focus();
+                    // 选中已有文本方便清空
+                    searchInput.select();
+                }
+            }
+            // ESC 关闭模态框
+            if (e.key === 'Escape') {
+                if (modalOverlay.classList.contains('open')) {
+                    closeModal();
+                }
+            }
+        }
+
+        // ================================================================
+        //  十六、初始化
+        // ================================================================
+        async function init() {
+            // 恢复主题
+            loadTheme();
+            // 恢复收藏
+            loadFavorites();
+            // 恢复分页模式
+            isPagedMode = getStoredPagedMode();
+            updateModeButtons();
+
+            // 加载数据
+            const data = await loadData();
+            allData = data;
+            filteredData = [];
+
+            // 默认按序号升序
+            sortColumn = 'seq';
+            sortAsc = true;
+            currentPage = 1;
+
+            // 渲染
+            render();
+
+            // 如果数据加载成功，隐藏错误（但如果是示例数据，错误已显示）
+            if (data.length > 0 && data !== SAMPLE_DATA) {
+                hideError();
+            }
+
+            // ---- 绑定事件 ----
+            // 搜索
+            searchInput.addEventListener('input', onSearchInput);
+
+            // 主题切换
+            themeToggle.addEventListener('click', toggleTheme);
+
+            // 分页模式切换
+            modePaged.addEventListener('click', () => {
+                if (!isPagedMode) {
+                    setPagedMode(true);
+                }
+            });
+            modeAll.addEventListener('click', () => {
+                if (isPagedMode) {
+                    setPagedMode(false);
+                }
+            });
+
+            // 分页按钮
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) { currentPage--;
+                    render(); }
+            });
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) { currentPage++;
+                    render(); }
+            });
+
+            // 表头排序
+            sortSeq.addEventListener('click', () => sortBy('seq'));
+            sortWord.addEventListener('click', () => sortBy('word'));
+            sortSfi.addEventListener('click', () => sortBy('sfi'));
+
+            // 模态框关闭
+            modalCloseBtn.addEventListener('click', closeModal);
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) closeModal();
+            });
+
+            // 键盘全局
+            document.addEventListener('keydown', handleKeydown);
+
+            // 窗口尺寸变化时，重新检测溢出（但无需额外操作，因为点击时实时检测）
+            // 搜索框清空时恢复分页模式
+            searchInput.addEventListener('search', () => {
+                if (searchInput.value === '') {
+                    doSearch('');
+                }
+            });
+
+            console.log('[NGSL] 初始化完成，共加载', allData.length, '条词汇');
+        }
+
+        // ================================================================
+        //  十七、启动
+        // ================================================================
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
