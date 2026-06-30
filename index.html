@@ -1,1146 +1,706 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NGSL 词汇表</title>
-<style>
-:root {
-    --bg: #fdf6ec;
-    --primary: #2d5a27;
-    --primary-light: #6fb464;
-    --header-bg: #e8f0e3;
-    --header-color: #2d5a27;
-    --border: #d4c5a8;
-    --text: #333;
-    --muted: #888;
-    --hover: #f5edd8;
-    --row-alt: #faf3e0;
-    --card-bg: #fffaf0;
-    --input-bg: #fff;
-    --shadow: rgba(45, 90, 39, 0.15);
-}
-[data-theme="dark"] {
-    --bg: #1e1e1e;
-    --primary: #4db6ac;
-    --primary-light: #80cbc4;
-    --header-bg: #2a2a2a;
-    --header-color: #4db6ac;
-    --border: #3a3a3a;
-    --text: #e0e0e0;
-    --muted: #888;
-    --hover: #2a3a36;
-    --row-alt: #232323;
-    --card-bg: #252525;
-    --input-bg: #2a2a2a;
-    --shadow: rgba(77, 182, 172, 0.25);
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-}
-.loading-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    z-index: 9999;
-}
-.loading-spinner {
-    width: 42px; height: 42px;
-    border: 3px solid rgba(255, 255, 255, 0.25);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-.loading-text { color: #fff; margin-top: 14px; font-size: 14px; letter-spacing: 1px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.topbar {
-    position: sticky; top: 0; z-index: 100;
-    background: var(--card-bg);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 16px;
-    box-shadow: 0 2px 8px var(--shadow);
-}
-.topbar-left, .topbar-right { flex-shrink: 0; }
-.topbar-center { flex: 1; max-width: 600px; margin: 0 auto; }
-.seg-group { display: inline-flex; }
-.seg-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 6px 14px;
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.2s;
-}
-.seg-btn:first-child { border-radius: 4px 0 0 4px; border-right: none; }
-.seg-btn:last-child { border-radius: 0 4px 4px 0; }
-.seg-btn.active {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
-}
-.seg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.theme-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    width: 36px; height: 36px;
-    cursor: pointer;
-    font-size: 18px;
-    color: var(--text);
-    transition: all 0.2s;
-}
-.theme-btn:hover { border-color: var(--primary); }
-.search-input {
-    width: 100%;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    background: var(--input-bg);
-    color: var(--text);
-    border-radius: 4px;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-.search-input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(77, 182, 172, 0.15);
-}
-.notice-bar {
-    max-width: 1200px;
-    margin: 12px auto 0;
-    padding: 8px 16px;
-    background: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeaa7;
-    border-radius: 4px;
-    font-size: 13px;
-}
-[data-theme="dark"] .notice-bar {
-    background: #3d3517;
-    color: #ffd966;
-    border-color: #5a4a1a;
-}
-.main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 16px;
-}
-.table-wrap {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: auto;
-    box-shadow: 0 2px 12px var(--shadow);
-}
-.word-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
-.word-table col.col-index { width: 50px; }
-.word-table col.col-word { width: 150px; }
-.word-table col.col-forms { width: auto; }
-.word-table col.col-sfi { width: 100px; }
-.word-table col.col-op { width: 50px; }
-.word-table th, .word-table td {
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    text-align: left;
-    vertical-align: middle;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.word-table thead th {
-    background: var(--header-bg);
-    color: var(--header-color);
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-.word-table th.th-sort {
-    cursor: pointer;
-    user-select: none;
-}
-.word-table th.th-sort:hover { background: var(--hover); }
-.sort-arrow {
-    display: inline-block;
-    min-width: 14px;
-    margin-left: 2px;
-    color: var(--primary);
-    font-weight: bold;
-}
-.word-table tbody tr:nth-child(even) { background: var(--row-alt); }
-.word-table tbody tr:hover { background: var(--hover); }
-.word-link {
-    color: var(--primary);
-    cursor: pointer;
-    font-weight: 500;
-}
-.word-link:hover { text-decoration: underline; }
-.forms-cell .forms-text {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    cursor: pointer;
-}
-.forms-cell .forms-text.empty { cursor: default; color: var(--muted); }
-.sfi-bar-wrap {
-    position: relative;
-    width: 100%;
-    height: 18px;
-    background: var(--hover);
-    border-radius: 3px;
-    overflow: hidden;
-}
-.sfi-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--primary-light));
-    transition: width 0.3s ease;
-}
-.sfi-text {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px;
-    color: var(--text);
-    font-weight: 600;
-    text-shadow: 0 0 2px rgba(255,255,255,0.6);
-}
-[data-theme="dark"] .sfi-text {
-    color: #fff;
-    text-shadow: 0 0 2px rgba(0,0,0,0.6);
-}
-.fav-btn {
-    cursor: pointer;
-    font-size: 18px;
-    color: var(--muted);
-    user-select: none;
-    display: inline-block;
-    transition: transform 0.15s, color 0.15s;
-}
-.fav-btn.active { color: #e74c3c; }
-.fav-btn:hover { transform: scale(1.2); }
-.pagination {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.pg-btn {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 6px 12px;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 13px;
-    transition: all 0.2s;
-    min-width: 36px;
-}
-.pg-btn:hover:not(:disabled):not(.active) {
-    background: var(--hover);
-    border-color: var(--primary);
-}
-.pg-btn.active {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
-}
-.pg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.pg-dot { color: var(--muted); padding: 0 4px; }
-.pg-info { color: var(--muted); font-size: 13px; margin-left: 12px; }
-.modal {
-    position: fixed; inset: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.modal-overlay {
-    position: absolute; inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    animation: fadeIn 0.2s ease;
-}
-.modal-content {
-    position: relative;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    max-width: 80%;
-    max-height: 70vh;
-    width: 600px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    animation: slideUp 0.25s ease;
-}
-[data-theme="dark"] .modal-content {
-    box-shadow: 0 0 24px var(--shadow), 0 8px 32px rgba(0, 0, 0, 0.5);
-    border-color: var(--primary);
-}
-.modal-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.modal-header h3 { font-size: 16px; color: var(--primary); }
-.modal-close {
-    background: transparent;
-    border: none;
-    color: var(--muted);
-    font-size: 24px;
-    cursor: pointer;
-    width: 32px; height: 32px;
-    line-height: 1;
-    border-radius: 4px;
-}
-.modal-close:hover { color: var(--text); background: var(--hover); }
-.modal-body {
-    padding: 16px;
-    overflow: auto;
-    word-break: break-word;
-    white-space: pre-wrap;
-    line-height: 1.6;
-    font-size: 14px;
-}
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@media (max-width: 600px) {
-    .topbar {
-        flex-wrap: wrap;
-        padding: 8px 10px;
-        gap: 8px;
-    }
-    .topbar-left { order: 1; }
-    .topbar-right { order: 2; }
-    .topbar-center {
-        order: 3;
-        flex: 1 1 100%;
-        max-width: 100%;
-    }
-    .seg-btn { padding: 5px 10px; font-size: 12px; }
-    .theme-btn { width: 32px; height: 32px; font-size: 16px; }
-    .search-input { font-size: 13px; padding: 7px 10px; }
-    .main { padding: 8px; }
-    .word-table col.col-index { width: 35px; }
-    .word-table col.col-word { width: 80px; }
-    .word-table col.col-sfi { width: 70px; }
-    .word-table col.col-op { width: 35px; }
-    .word-table th, .word-table td {
-        padding: 6px 8px;
-        font-size: 12px;
-    }
-    .sfi-text { display: none; }
-    .sfi-bar-wrap { height: 14px; }
-    .pagination { gap: 4px; }
-    .pg-btn { padding: 5px 8px; font-size: 12px; min-width: 32px; }
-    .pg-info { margin-left: 4px; width: 100%; text-align: center; }
-    .modal-content { width: 92%; max-width: 92%; }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NGSL 词汇表查询</title>
+    <style>
+        :root {
+            --bg-color: #fdf6ec;
+            --header-bg: #e8f5e9;
+            --text-color: #333;
+            --primary-color: #2d5a27;
+            --border-color: #ddd;
+            --hover-bg: #f1f8e9;
+            --modal-bg: rgba(0, 0, 0, 0.5);
+            --card-bg: #fff;
+            --marked-color: #d32f2f;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1e1e1e;
+            --header-bg: #2c2c2c;
+            --text-color: #e0e0e0;
+            --primary-color: #4db6ac;
+            --border-color: #444;
+            --hover-bg: #373737;
+            --modal-bg: rgba(0, 0, 0, 0.7);
+            --card-bg: #2c2c2c;
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.3s, color 0.3s; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); padding-bottom: 50px; }
+
+        /* Loading */
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; color: var(--primary-color); }
+        .spinner { border: 4px solid rgba(0,0,0,0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--primary-color); animation: spin 1s linear infinite; margin-right: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Top Bar */
+        .top-bar { position: sticky; top: 0; z-index: 100; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; box-shadow: var(--shadow); }
+        .bar-left, .bar-right { display: flex; align-items: center; gap: 10px; }
+        .bar-center { flex-grow: 1; max-width: 400px; margin: 0 10px; }
+        
+        button { cursor: pointer; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); padding: 6px 12px; border-radius: 4px; font-size: 14px; }
+        button:hover:not(:disabled) { background-color: var(--hover-bg); border-color: var(--primary-color); }
+        button.active { background-color: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        input[type="text"] { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; outline: none; background: var(--bg-color); color: var(--text-color); }
+        input[type="text"]:focus { border-color: var(--primary-color); }
+
+        /* Table */
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 10px; }
+        .status-msg { text-align: center; color: #f57c00; margin-bottom: 10px; display: none; }
+        .table-wrapper { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 600px; }
+        th, td { border: 1px solid var(--border-color); padding: 8px 10px; text-align: left; overflow: hidden; }
+        th { background-color: var(--header-bg); font-weight: 600; position: sticky; top: 0; z-index: 10; user-select: none; }
+        tr:hover { background-color: var(--hover-bg); }
+        
+        .col-id { width: 80px; }
+        .col-word { width: 150px; font-weight: bold; cursor: pointer; }
+        .col-word:hover { text-decoration: underline; color: var(--primary-color); }
+        .col-form { /* auto width */ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: help; color: #666; }
+        [data-theme="dark"] .col-form { color: #aaa; }
+        .col-action { width: 70px; text-align: center; }
+
+        .mark-btn { display: inline-block; width: 24px; height: 24px; border: 2px solid #999; border-radius: 50%; cursor: pointer; position: relative; background: transparent; padding: 0; }
+        .mark-btn.marked { background-color: var(--marked-color); border-color: var(--marked-color); }
+        .mark-btn.marked::after { content: '✓'; color: #fff; font-size: 16px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+        /* Pagination */
+        .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 10px; }
+        .page-info { font-size: 14px; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); z-index: 200; justify-content: center; align-items: center; }
+        .modal.open { display: flex; }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: var(--shadow); position: relative; max-height: 80vh; overflow-y: auto; }
+        .modal-close { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 20px; color: #999; }
+        .modal-close:hover { color: var(--marked-color); }
+        .modal-body { margin-top: 10px; word-wrap: break-word; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .col-id { width: 50px; }
+            .col-word { width: 80px; }
+            .col-action { width: 50px; }
+            .top-bar { justify-content: center; }
+            .bar-center { width: 100%; max-width: none; margin: 10px 0; }
+            .bar-left, .bar-right { width: 100%; justify-content: center; }
+        }
+    </style>
 </head>
 <body>
-<div id="loading" class="loading-overlay">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">加载中...</div>
-</div>
-<header class="topbar">
-    <div class="topbar-left">
-        <div class="seg-group">
-            <button type="button" class="seg-btn active" id="modePaged">分页</button>
-            <button type="button" class="seg-btn" id="modeUnpaged">不分页</button>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <header class="top-bar">
+        <div class="bar-left">
+            <button id="btn-paginate" class="active">分页</button>
+            <button id="btn-unpaginate">不分页</button>
+        </div>
+        <div class="bar-center">
+            <input type="text" id="search-input" placeholder="搜索单词或词形...">
+        </div>
+        <div class="bar-right">
+            <button id="btn-export">导出生词</button>
+            <button id="btn-theme">☀️ / 🌙</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="status-msg" class="status-msg">已加载内置示例数据</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="col-id" data-sort="id">序号 <span id="sort-id"></span></th>
+                        <th class="col-word" data-sort="word">单词 <span id="sort-word"></span></th>
+                        <th class="col-form">相关词形</th>
+                        <th class="col-action">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Data rows will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+        <div id="pagination" class="pagination">
+            <button id="prev-page">上一页</button>
+            <span class="page-info">第 <span id="curr-page">1</span> 页 / 共 <span id="total-page">1</span> 页</span>
+            <button id="next-page">下一页</button>
+        </div>
+    </main>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="hideModal()">&times;</span>
+            <h3>词形详情</h3>
+            <div id="modal-body" class="modal-body"></div>
         </div>
     </div>
-    <div class="topbar-center">
-        <input type="text" id="searchInput" class="search-input" placeholder="搜索单词或相关词形（按 / 快速聚焦）" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="topbar-right">
-        <button type="button" class="theme-btn" id="themeBtn" title="切换主题">🌙</button>
-    </div>
-</header>
-<div id="noticeBar" class="notice-bar" style="display:none;"></div>
-<main class="main">
-    <div class="table-wrap">
-        <table class="word-table" id="wordTable">
-            <colgroup>
-                <col class="col-index">
-                <col class="col-word">
-                <col class="col-forms">
-                <col class="col-sfi">
-                <col class="col-op">
-            </colgroup>
-            <thead>
-                <tr>
-                    <th class="th-sort" data-sort="index">序号<span class="sort-arrow"></span></th>
-                    <th class="th-sort" data-sort="word">单词<span class="sort-arrow"></span></th>
-                    <th>相关词形</th>
-                    <th class="th-sort" data-sort="sfi">SFI词频<span class="sort-arrow"></span></th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody id="wordTbody"></tbody>
-        </table>
-    </div>
-    <div class="pagination" id="pagination"></div>
-</main>
-<div id="modal" class="modal" style="display:none;">
-    <div class="modal-overlay" id="modalOverlay"></div>
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>相关词形</h3>
-            <button type="button" class="modal-close" id="modalClose" aria-label="关闭">×</button>
-        </div>
-        <div class="modal-body" id="modalBody"></div>
-    </div>
-</div>
-<script>
-'use strict';
 
-const DATA_FILE = "data.csv";
-const PAGE_SIZE = 20;
-const LS_KEY_THEME = 'ngsl-theme';
-const LS_KEY_PAGED = 'ngsl-paged-mode';
-const LS_KEY_FAV = 'ngsl-favorites';
+    <script>
+        // --- Constants & Config ---
+        const DATAFILE = "data.csv";
+        const ITEMS_PER_PAGE = 20;
+        const STORAGE_KEY_MARKS = "ngsl_marks";
+        const STORAGE_KEY_THEME = "ngsl_theme";
+        const STORAGE_KEY_PAGINATION = "ngsl_pagination_mode";
 
-// 内置示例数据（35 条，覆盖 4 列与 5 列格式）
-const SAMPLE_DATA_RAW = [
-    "1,the,,70.5,100.0",
-    "2,be,\"am,is,are,was,were,been,being\",69.8,98.5",
-    "3,of,,69.2,97.8",
-    "4,and,,68.9,97.5",
-    "5,a,,68.5,97.0",
-    "6,in,,67.8,96.5",
-    "7,to,,67.5,96.0",
-    "8,have,has/had/having,66.9,95.5",
-    "9,it,,66.5,95.0",
-    "10,that,,65.8,94.5",
-    "11,he,,65.5,94.0",
-    "12,for,,64.9,93.5",
-    "13,not,,64.5,93.0",
-    "14,on,,64.2,92.5",
-    "15,with,,63.8,92.0",
-    "16,as,,63.5,91.5",
-    "17,I,,63.0,91.0",
-    "18,they,,62.5,90.5",
-    "19,you,,62.0,90.0",
-    "20,at,,61.5,89.5",
-    "21,by,,61.0,89.0",
-    "22,this,,60.5,88.5",
-    "23,we,,60.0,88.0",
-    "24,do,does/did/done/doing,59.5,87.5",
-    "25,can,could,59.0,87.0",
-    "26,say,says/said/saying,58.5,86.5",
-    "27,get,got/gotten/getting,58.0,86.0",
-    "28,go,goes/went/gone/going,57.5,85.5",
-    "29,make,made/making,57.0,85.0",
-    "30,know,knew/known/knowing,56.5,84.5",
-    "31,will,,56.0,84.0",
-    "32,see,saw/seen/seeing,55.5,83.5",
-    "33,one,,55.0,83.0",
-    "34,time,times/timed/timing,54.5,82.5",
-    "35,year,years/yearly,54.0,82.0"
-];
+        // --- State ---
+        let allData = [];
+        let displayData = [];
+        let markedWords = new Set();
+        let isPagination = true;
+        let currentPage = 1;
+        let sortCol = 'id';
+        let sortAsc = true;
+        let isDarkMode = false;
 
-// 运行时状态
-let allData = [];
-let filteredData = [];
-let currentPage = 1;
-let sortField = 'index';
-let sortDir = 'asc';
-let searchTimer = null;
-let pagedMode = true;
-let savedPagedMode = true;
-let isSearchActive = false;
+        // --- DOM Elements ---
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const statusMsg = document.getElementById('status-msg');
+        const tableBody = document.getElementById('table-body');
+        const searchInput = document.getElementById('search-input');
+        const btnPaginate = document.getElementById('btn-paginate');
+        const btnUnpaginate = document.getElementById('btn-unpaginate');
+        const paginationDiv = document.getElementById('pagination');
+        const btnPrev = document.getElementById('prev-page');
+        const btnNext = document.getElementById('next-page');
+        const spanCurrPage = document.getElementById('curr-page');
+        const spanTotalPage = document.getElementById('total-page');
+        const btnExport = document.getElementById('btn-export');
+        const btnTheme = document.getElementById('btn-theme');
+        const modal = document.getElementById('modal');
+        const modalBody = document.getElementById('modal-body');
+        const thId = document.querySelector('th[data-sort="id"]');
+        const thWord = document.querySelector('th[data-sort="word"]');
 
-/* ============ CSV 解析（RFC4180 状态机） ============ */
-function parseCSV(text) {
-    const rows = [];
-    let row = [];
-    let field = '';
-    let inQuotes = false;
-    let i = 0;
-    const len = text.length;
-    try {
-        while (i < len) {
-            const c = text.charAt(i);
-            if (inQuotes) {
-                if (c === '"') {
-                    if (i + 1 < len && text.charAt(i + 1) === '"') {
-                        field += '"';
-                        i += 2;
-                    } else {
-                        inQuotes = false;
-                        i++;
-                    }
-                } else {
-                    field += c;
-                    i++;
-                }
-            } else {
-                if (c === '"') {
-                    inQuotes = true;
-                    i++;
-                } else if (c === ',') {
-                    row.push(field);
-                    field = '';
-                    i++;
-                } else if (c === '\r') {
-                    row.push(field);
-                    field = '';
-                    rows.push(row);
-                    row = [];
-                    if (i + 1 < len && text.charAt(i + 1) === '\n') {
-                        i += 2;
-                    } else {
-                        i++;
-                    }
-                } else if (c === '\n') {
-                    row.push(field);
-                    field = '';
-                    rows.push(row);
-                    row = [];
-                    i++;
-                } else {
-                    field += c;
-                    i++;
-                }
+        // --- Initialization ---
+        async function init() {
+            showLoading();
+            try {
+                loadSettings();
+                markedWords = loadMarks();
+                allData = await loadData();
+                // 如果数据为空，已经在 loadData 里处理了降级数据
+                applySort(); 
+                applySearch(); // 初始渲染
+            } catch (e) {
+                console.error("Critical Init Error:", e);
+                allData = []; // Fallback safety
+                applySearch();
+            } finally {
+                hideLoading();
             }
         }
-        if (field.length > 0 || row.length > 0) {
-            row.push(field);
-            rows.push(row);
+
+        // --- Data Loading & Parsing ---
+        async function loadData() {
+            try {
+                const response = await fetch(DATAFILE);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const text = await response.text();
+                return parseCSV(text);
+            } catch (e) {
+                console.warn("Fetch failed or parsing failed, loading fallback data.", e);
+                statusMsg.style.display = 'block';
+                return getFallbackData();
+            }
         }
-    } catch (e) {
-        console.warn('CSV 解析过程异常:', e);
-    }
-    const result = [];
-    for (let r = 0; r < rows.length; r++) {
-        try {
-            const trimmed = rows[r].map(function(f) {
+
+        function getFallbackData() {
+            // 生成不少于30条的示例数据
+            const data = [];
+            for (let i = 1; i <= 35; i++) {
+                data.push({
+                    id: i,
+                    word: `example${i}`,
+                    forms: i % 3 === 0 ? `ex${i}, ex${i}s, ex${i}ing` : '',
+                    sfi: 60 + Math.floor(Math.random() * 10),
+                    freq: (Math.random() * 10).toFixed(2)
+                });
+            }
+            return data;
+        }
+
+        // RFC4180 Compliant CSV Parser State Machine
+        function parseCSV(text) {
+            const result = [];
+            let row = [];
+            let currentField = '';
+            let inQuotes = false;
+            let i = 0;
+            const len = text.length;
+
+            while (i < len) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        currentField += '"';
+                        i += 2; // Skip escaped quote
+                        continue;
+                    } else {
+                        inQuotes = !inQuotes;
+                        i++;
+                        continue;
+                    }
+                }
+
+                if (inQuotes) {
+                    currentField += char;
+                    i++;
+                    continue;
+                }
+
+                if (char === ',') {
+                    row.push(currentField.trim());
+                    currentField = '';
+                    i++;
+                    continue;
+                }
+
+                if (char === '\r' && nextChar === '\n') {
+                    row.push(currentField.trim());
+                    if (row.some(f => f.length > 0)) processRow(row);
+                    row = [];
+                    currentField = '';
+                    i += 2;
+                    continue;
+                }
+
+                if (char === '\n' || char === '\r') {
+                    row.push(currentField.trim());
+                    if (row.some(f => f.length > 0)) processRow(row);
+                    row = [];
+                    currentField = '';
+                    i++;
+                    continue;
+                }
+
+                currentField += char;
+                i++;
+            }
+
+            // Last line if no newline at EOF
+            if (currentField || row.length > 0) {
+                row.push(currentField.trim());
+                if (row.some(f => f.length > 0)) processRow(row);
+            }
+
+            function processRow(rawRow) {
                 try {
-                    return String(f == null ? '' : f).replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '');
+                    if (rawRow.length < 2) return; // 忽略无效行
+                    
+                    // 清理引号 (去除首尾引号，并将内部 "" 恢复为 ")
+                    const cleanRow = rawRow.map(field => {
+                        if (field.startsWith('"') && field.endsWith('"')) {
+                            return field.slice(1, -1).replace(/""/g, '"');
+                        }
+                        return field;
+                    });
+
+                    let id, word, forms, sfi, freq;
+
+                    // 兼容性处理：5列或4列
+                    if (cleanRow.length === 5) {
+                        id = cleanRow[0];
+                        word = cleanRow[1];
+                        forms = cleanRow[2];
+                        sfi = cleanRow[3];
+                        freq = cleanRow[4];
+                    } else if (cleanRow.length === 4) {
+                        id = cleanRow[0];
+                        word = cleanRow[1];
+                        forms = "";
+                        sfi = cleanRow[2];
+                        freq = cleanRow[3];
+                    } else {
+                        console.warn("Skipped row due to column count mismatch:", cleanRow);
+                        return;
+                    }
+
+                    // SFI 检查
+                    const sfiNum = Number(sfi);
+                    if (isNaN(sfiNum)) {
+                        console.warn("Invalid SFI for word:", word, "defaulting to 0");
+                    }
+
+                    result.push({
+                        id: id,
+                        word: word,
+                        forms: forms,
+                        sfi: isNaN(sfiNum) ? 0 : sfiNum,
+                        freq: freq
+                    });
+
                 } catch (e) {
-                    return '';
+                    console.warn("Error processing row:", rawRow, e);
                 }
-            });
-            if (trimmed.length === 0) continue;
-            let allEmpty = true;
-            for (let k = 0; k < trimmed.length; k++) {
-                if (trimmed[k] !== '') { allEmpty = false; break; }
             }
-            if (allEmpty) continue;
-            result.push(trimmed);
-        } catch (e) {
-            console.warn('CSV 第 ' + (r + 1) + ' 行处理异常:', e);
-        }
-    }
-    return result;
-}
 
-/* ============ 数据构建 ============ */
-function buildDataFromRows(rows) {
-    if (!Array.isArray(rows) || rows.length < 2) return [];
-    const data = [];
-    for (let i = 1; i < rows.length; i++) {
-        try {
-            const row = rows[i];
-            const cols = row.length;
-            let index, word, forms, sfi, usage;
-            if (cols === 5) {
-                index = row[0];
-                word = row[1];
-                forms = row[2];
-                sfi = row[3];
-                usage = row[4];
-            } else if (cols === 4) {
-                index = row[0];
-                word = row[1];
-                forms = '';
-                sfi = row[2];
-                usage = row[3];
+            return result;
+        }
+
+        // --- Rendering & Logic ---
+        function renderTable() {
+            tableBody.innerHTML = '';
+            
+            let start = 0;
+            let end = displayData.length;
+
+            if (isPagination) {
+                start = (currentPage - 1) * ITEMS_PER_PAGE;
+                end = Math.min(start + ITEMS_PER_PAGE, displayData.length);
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            for (let i = start; i < end; i++) {
+                const item = displayData[i];
+                const tr = document.createElement('tr');
+                
+                // Mark Status
+                const isMarked = markedWords.has(item.word);
+                
+                tr.innerHTML = `
+                    <td class="col-id">${item.id}</td>
+                    <td class="col-word" onclick="handleWordClick('${escapeHtml(item.word)}')">${escapeHtml(item.word)}</td>
+                    <td class="col-form" onclick="showModal('${escapeHtml(item.forms)}')" title="点击查看详情">${escapeHtml(item.forms)}</td>
+                    <td class="col-action">
+                        <div class="mark-btn ${isMarked ? 'marked' : ''}" onclick="toggleMarkWord('${escapeHtml(item.word)}', this)"></div>
+                    </td>
+                `;
+                fragment.appendChild(tr);
+            }
+            tableBody.appendChild(fragment);
+            renderPagination();
+        }
+
+        function renderPagination() {
+            if (!isPagination) {
+                paginationDiv.style.display = 'none';
+                return;
+            }
+            paginationDiv.style.display = 'flex';
+            const totalPages = Math.ceil(displayData.length / ITEMS_PER_PAGE) || 1;
+            
+            // 边界检查
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            spanCurrPage.textContent = currentPage;
+            spanTotalPage.textContent = totalPages;
+
+            btnPrev.disabled = currentPage === 1;
+            btnNext.disabled = currentPage === totalPages;
+        }
+
+        function applySearch() {
+            const query = searchInput.value.trim().toLowerCase();
+            if (!query) {
+                displayData = [...allData];
+                // 恢复分页偏好（如果搜索时自动切换为了不分页）
+                const savedMode = localStorage.getItem(STORAGE_KEY_PAGINATION);
+                if (savedMode === 'paginate') {
+                    isPagination = true;
+                    updatePaginationButtons();
+                }
             } else {
-                console.warn('CSV 第 ' + (i + 1) + ' 行列数异常 (' + cols + ')，跳过');
-                continue;
+                // 搜索时自动不分页
+                isPagination = false;
+                updatePaginationButtons();
+                
+                displayData = allData.filter(item => {
+                    return item.word.toLowerCase().includes(query) || 
+                           item.forms.toLowerCase().includes(query);
+                });
             }
-            let sfiNum = 0;
-            try {
-                sfiNum = Number(sfi);
-                if (!isFinite(sfiNum) || isNaN(sfiNum)) sfiNum = 0;
-            } catch (e) {
-                sfiNum = 0;
-            }
-            let pct = sfiNum;
-            if (pct < 0) pct = 0;
-            if (pct > 100) pct = 100;
-            const wordStr = String(word || '');
-            data.push({
-                index: String(index || ''),
-                word: wordStr,
-                forms: String(forms || ''),
-                sfi: sfiNum,
-                sfiPct: pct,
-                usage: String(usage || ''),
-                favorite: isFavorite(wordStr)
-            });
-        } catch (e) {
-            console.warn('CSV 第 ' + (i + 1) + ' 行构建异常:', e);
-        }
-    }
-    return data;
-}
-
-/* ============ 数据加载 ============ */
-async function loadData() {
-    try {
-        let response;
-        try {
-            response = await fetch(DATA_FILE);
-        } catch (fetchErr) {
-            console.warn('fetch 失败（可能是 file:// 协议或网络错误）:', fetchErr && fetchErr.message);
-            showNotice('已加载内置示例数据');
-            return buildSampleData();
-        }
-        if (!response || !response.ok) {
-            console.warn('HTTP 状态异常:', response ? response.status : 'no response');
-            showNotice('已加载内置示例数据');
-            return buildSampleData();
-        }
-        const text = await response.text();
-        if (!text || text.trim() === '') {
-            console.warn('数据文件为空');
-            showNotice('已加载内置示例数据');
-            return buildSampleData();
-        }
-        const rows = parseCSV(text);
-        const data = buildDataFromRows(rows);
-        if (!data || data.length === 0) {
-            console.warn('解析后无有效数据');
-            showNotice('已加载内置示例数据');
-            return buildSampleData();
-        }
-        return data;
-    } catch (e) {
-        console.warn('loadData 异常:', e);
-        showNotice('已加载内置示例数据');
-        return buildSampleData();
-    }
-}
-
-function buildSampleData() {
-    try {
-        const rows = parseCSV(SAMPLE_DATA_RAW.join('\n'));
-        return buildDataFromRows(rows);
-    } catch (e) {
-        console.warn('构建示例数据失败:', e);
-        return [];
-    }
-}
-
-/* ============ 通知与 Loading ============ */
-function showNotice(msg) {
-    const bar = document.getElementById('noticeBar');
-    if (!bar) return;
-    bar.textContent = msg;
-    bar.style.display = 'block';
-}
-
-function hideNotice() {
-    const bar = document.getElementById('noticeBar');
-    if (bar) bar.style.display = 'none';
-}
-
-function showLoading() {
-    const el = document.getElementById('loading');
-    if (el) el.style.display = 'flex';
-}
-
-function hideLoading() {
-    const el = document.getElementById('loading');
-    if (el) el.style.display = 'none';
-}
-
-/* ============ 转义工具 ============ */
-function escapeAttrSingle(s) {
-    return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-}
-
-/* ============ 渲染表格 ============ */
-function renderTable() {
-    const tbody = document.getElementById('wordTbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    let dataToShow = filteredData;
-    const usePaging = pagedMode && !isSearchActive;
-    if (usePaging) {
-        const start = (currentPage - 1) * PAGE_SIZE;
-        const end = start + PAGE_SIZE;
-        dataToShow = filteredData.slice(start, end);
-    }
-    const fragment = document.createDocumentFragment();
-    for (let i = 0; i < dataToShow.length; i++) {
-        const item = dataToShow[i];
-        try {
-            const tr = document.createElement('tr');
-            // 序号
-            const tdIndex = document.createElement('td');
-            tdIndex.textContent = item.index;
-            tr.appendChild(tdIndex);
-            // 单词
-            const tdWord = document.createElement('td');
-            const wordSpan = document.createElement('span');
-            wordSpan.className = 'word-link';
-            wordSpan.textContent = item.word;
-            wordSpan.setAttribute('onclick', "handleWordClick('" + escapeAttrSingle(item.word) + "')");
-            tdWord.appendChild(wordSpan);
-            tr.appendChild(tdWord);
-            // 相关词形
-            const tdForms = document.createElement('td');
-            tdForms.className = 'forms-cell';
-            if (item.forms) {
-                const formsSpan = document.createElement('span');
-                formsSpan.className = 'forms-text';
-                formsSpan.textContent = item.forms;
-                formsSpan.title = item.forms;
-                tdForms.appendChild(formsSpan);
-            } else {
-                const empty = document.createElement('span');
-                empty.className = 'forms-text empty';
-                empty.textContent = '-';
-                tdForms.appendChild(empty);
-            }
-            tr.appendChild(tdForms);
-            // SFI
-            const tdSfi = document.createElement('td');
-            const sfiBar = document.createElement('div');
-            sfiBar.className = 'sfi-bar-wrap';
-            const sfiFill = document.createElement('div');
-            sfiFill.className = 'sfi-bar-fill';
-            sfiFill.style.width = item.sfiPct + '%';
-            const sfiText = document.createElement('span');
-            sfiText.className = 'sfi-text';
-            sfiText.textContent = item.sfi;
-            sfiBar.appendChild(sfiFill);
-            sfiBar.appendChild(sfiText);
-            tdSfi.appendChild(sfiBar);
-            tr.appendChild(tdSfi);
-            // 操作
-            const tdOp = document.createElement('td');
-            const favBtn = document.createElement('span');
-            favBtn.className = 'fav-btn' + (item.favorite ? ' active' : '');
-            favBtn.textContent = '♥';
-            favBtn.setAttribute('data-word', item.word);
-            favBtn.title = item.favorite ? '取消收藏' : '添加收藏';
-            tdOp.appendChild(favBtn);
-            tr.appendChild(tdOp);
-            fragment.appendChild(tr);
-        } catch (e) {
-            console.warn('渲染行异常:', e);
-        }
-    }
-    tbody.appendChild(fragment);
-    renderPagination();
-}
-
-/* ============ 渲染分页 ============ */
-function renderPagination() {
-    const pg = document.getElementById('pagination');
-    if (!pg) return;
-    const usePaging = pagedMode && !isSearchActive;
-    if (!usePaging) {
-        pg.style.display = 'none';
-        pg.innerHTML = '';
-        return;
-    }
-    const total = filteredData.length;
-    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    if (currentPage > totalPages) currentPage = totalPages;
-    if (currentPage < 1) currentPage = 1;
-    pg.style.display = 'flex';
-    pg.innerHTML = '';
-    const prevBtn = document.createElement('button');
-    prevBtn.type = 'button';
-    prevBtn.className = 'pg-btn';
-    prevBtn.textContent = '上一页';
-    prevBtn.disabled = currentPage === 1;
-    prevBtn.addEventListener('click', function() {
-        if (currentPage > 1) { currentPage--; renderTable(); }
-    });
-    pg.appendChild(prevBtn);
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + 4);
-    if (end - start < 4) start = Math.max(1, end - 4);
-    if (start > 1) {
-        const p1 = document.createElement('button');
-        p1.type = 'button';
-        p1.className = 'pg-btn';
-        p1.textContent = '1';
-        p1.addEventListener('click', function() { currentPage = 1; renderTable(); });
-        pg.appendChild(p1);
-        if (start > 2) {
-            const dot = document.createElement('span');
-            dot.className = 'pg-dot';
-            dot.textContent = '...';
-            pg.appendChild(dot);
-        }
-    }
-    for (let i = start; i <= end; i++) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'pg-btn' + (i === currentPage ? ' active' : '');
-        btn.textContent = i;
-        btn.addEventListener('click', function() { currentPage = i; renderTable(); });
-        pg.appendChild(btn);
-    }
-    if (end < totalPages) {
-        if (end < totalPages - 1) {
-            const dot = document.createElement('span');
-            dot.className = 'pg-dot';
-            dot.textContent = '...';
-            pg.appendChild(dot);
-        }
-        const lastBtn = document.createElement('button');
-        lastBtn.type = 'button';
-        lastBtn.className = 'pg-btn';
-        lastBtn.textContent = totalPages;
-        lastBtn.addEventListener('click', function() { currentPage = totalPages; renderTable(); });
-        pg.appendChild(lastBtn);
-    }
-    const nextBtn = document.createElement('button');
-    nextBtn.type = 'button';
-    nextBtn.className = 'pg-btn';
-    nextBtn.textContent = '下一页';
-    nextBtn.disabled = currentPage === totalPages;
-    nextBtn.addEventListener('click', function() {
-        if (currentPage < totalPages) { currentPage++; renderTable(); }
-    });
-    pg.appendChild(nextBtn);
-    const info = document.createElement('span');
-    info.className = 'pg-info';
-    info.textContent = '共 ' + total + ' 条';
-    pg.appendChild(info);
-}
-
-/* ============ 搜索 ============ */
-function applySearch(keyword) {
-    const kw = (keyword || '').trim().toLowerCase();
-    if (kw === '') {
-        isSearchActive = false;
-        filteredData = allData.slice();
-        pagedMode = savedPagedMode;
-        updateModeButtons();
-    } else {
-        isSearchActive = true;
-        filteredData = allData.filter(function(item) {
-            try {
-                if (item.word && item.word.toLowerCase().indexOf(kw) !== -1) return true;
-                if (item.forms && item.forms.toLowerCase().indexOf(kw) !== -1) return true;
-                return false;
-            } catch (e) {
-                return false;
-            }
-        });
-        if (pagedMode) {
-            savedPagedMode = pagedMode;
-            pagedMode = false;
-        }
-        updateModeButtons();
-    }
-    currentPage = 1;
-    applySort();
-}
-
-/* ============ 排序 ============ */
-function applySort() {
-    const field = sortField;
-    const dir = sortDir === 'asc' ? 1 : -1;
-    filteredData.sort(function(a, b) {
-        try {
-            const av = a[field];
-            const bv = b[field];
-            if (field === 'sfi' || field === 'index') {
-                let na = Number(av);
-                let nb = Number(bv);
-                if (isNaN(na)) na = 0;
-                if (isNaN(nb)) nb = 0;
-                return (na - nb) * dir;
-            }
-            return String(av).localeCompare(String(bv)) * dir;
-        } catch (e) {
-            return 0;
-        }
-    });
-    renderTable();
-    updateSortArrows();
-}
-
-function updateSortArrows() {
-    const ths = document.querySelectorAll('.th-sort');
-    ths.forEach(function(th) {
-        const arrow = th.querySelector('.sort-arrow');
-        if (!arrow) return;
-        if (th.getAttribute('data-sort') === sortField) {
-            arrow.textContent = sortDir === 'asc' ? '↑' : '↓';
-        } else {
-            arrow.textContent = '';
-        }
-    });
-}
-
-/* ============ 主题 ============ */
-function toggleTheme() {
-    const html = document.documentElement;
-    const cur = html.getAttribute('data-theme');
-    const isDark = cur === 'dark';
-    if (isDark) {
-        html.removeAttribute('data-theme');
-    } else {
-        html.setAttribute('data-theme', 'dark');
-    }
-    const btn = document.getElementById('themeBtn');
-    if (btn) btn.textContent = isDark ? '🌙' : '☀️';
-    try {
-        localStorage.setItem(LS_KEY_THEME, isDark ? 'light' : 'dark');
-    } catch (e) {
-        console.warn('保存主题失败:', e);
-    }
-}
-
-function restoreTheme() {
-    try {
-        const saved = localStorage.getItem(LS_KEY_THEME);
-        if (saved === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            const btn = document.getElementById('themeBtn');
-            if (btn) btn.textContent = '☀️';
-        }
-    } catch (e) {
-        console.warn('恢复主题失败:', e);
-    }
-}
-
-/* ============ 收藏 ============ */
-function getFavorites() {
-    try {
-        const arr = JSON.parse(localStorage.getItem(LS_KEY_FAV) || '[]');
-        return Array.isArray(arr) ? arr : [];
-    } catch (e) {
-        return [];
-    }
-}
-
-function isFavorite(word) {
-    if (!word) return false;
-    try {
-        return getFavorites().indexOf(word) !== -1;
-    } catch (e) {
-        return false;
-    }
-}
-
-function toggleFavorite(word, el) {
-    if (!word) return;
-    try {
-        let favs = getFavorites();
-        const idx = favs.indexOf(word);
-        const willFav = idx === -1;
-        if (willFav) {
-            favs.push(word);
-        } else {
-            favs.splice(idx, 1);
-        }
-        localStorage.setItem(LS_KEY_FAV, JSON.stringify(favs));
-        for (let i = 0; i < allData.length; i++) {
-            if (allData[i].word === word) {
-                allData[i].favorite = willFav;
-            }
-        }
-        if (el) {
-            if (willFav) {
-                el.classList.add('active');
-                el.title = '取消收藏';
-            } else {
-                el.classList.remove('active');
-                el.title = '添加收藏';
-            }
-        }
-    } catch (e) {
-        console.warn('收藏失败:', e);
-    }
-}
-
-/* ============ Modal ============ */
-function showModal(text) {
-    const modal = document.getElementById('modal');
-    const body = document.getElementById('modalBody');
-    if (!modal || !body) return;
-    body.textContent = text || '';
-    modal.style.display = 'flex';
-}
-
-function hideModal() {
-    const modal = document.getElementById('modal');
-    if (modal) modal.style.display = 'none';
-}
-
-/* ============ 预留接口 ============ */
-function handleWordClick(word) {
-    // 预留未来扩展
-}
-
-/* ============ 模式切换 ============ */
-function setPagedMode(paged) {
-    if (isSearchActive) return;
-    pagedMode = paged;
-    savedPagedMode = paged;
-    try {
-        localStorage.setItem(LS_KEY_PAGED, paged ? '1' : '0');
-    } catch (e) {
-        console.warn('保存分页模式失败:', e);
-    }
-    updateModeButtons();
-    currentPage = 1;
-    renderTable();
-}
-
-function updateModeButtons() {
-    const m1 = document.getElementById('modePaged');
-    const m2 = document.getElementById('modeUnpaged');
-    if (m1) {
-        m1.classList.toggle('active', pagedMode);
-        m1.disabled = isSearchActive;
-    }
-    if (m2) {
-        m2.classList.toggle('active', !pagedMode);
-        m2.disabled = isSearchActive;
-    }
-}
-
-function restorePagedMode() {
-    try {
-        const saved = localStorage.getItem(LS_KEY_PAGED);
-        if (saved === '0') {
-            pagedMode = false;
-            savedPagedMode = false;
-        }
-    } catch (e) {
-        console.warn('恢复分页模式失败:', e);
-    }
-    updateModeButtons();
-}
-
-/* ============ 事件绑定 ============ */
-function bindEvents() {
-    const themeBtn = document.getElementById('themeBtn');
-    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
-    const mp = document.getElementById('modePaged');
-    const mu = document.getElementById('modeUnpaged');
-    if (mp) mp.addEventListener('click', function() { setPagedMode(true); });
-    if (mu) mu.addEventListener('click', function() { setPagedMode(false); });
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            clearTimeout(searchTimer);
-            const val = e.target.value;
-            searchTimer = setTimeout(function() {
-                applySearch(val);
-            }, 300);
-        });
-    }
-    document.querySelectorAll('.th-sort').forEach(function(th) {
-        th.addEventListener('click', function() {
-            const field = th.getAttribute('data-sort');
-            if (!field) return;
-            if (sortField === field) {
-                sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortField = field;
-                sortDir = 'asc';
-            }
+            // 搜索或重置后，重新应用排序并回到第一页
+            sortData(); 
             currentPage = 1;
+            renderTable();
+        }
+
+        function applySort() {
+            sortData();
+            currentPage = 1;
+            renderTable();
+        }
+
+        function sortData() {
+            displayData.sort((a, b) => {
+                let valA = a[sortCol];
+                let valB = b[sortCol];
+
+                // 尝试数字比较
+                if (sortCol === 'id') {
+                    valA = parseInt(valA, 10) || 0;
+                    valB = parseInt(valB, 10) || 0;
+                } else {
+                    valA = valA.toString().toLowerCase();
+                    valB = valB.toString().toLowerCase();
+                }
+
+                if (valA < valB) return sortAsc ? -1 : 1;
+                if (valA > valB) return sortAsc ? 1 : -1;
+                return 0;
+            });
+            updateSortIcons();
+        }
+
+        function updateSortIcons() {
+            const idSpan = document.getElementById('sort-id');
+            const wordSpan = document.getElementById('sort-word');
+            
+            const reset = (el) => el.textContent = '';
+            const set = (el, asc) => el.textContent = asc ? ' ↑' : ' ↓';
+
+            reset(idSpan);
+            reset(wordSpan);
+
+            if (sortCol === 'id') set(idSpan, sortAsc);
+            if (sortCol === 'word') set(wordSpan, sortAsc);
+        }
+
+        // --- Interaction Handlers ---
+        
+        // Reserved interface
+        function handleWordClick(word) {
+            // Reserved for future expansion
+        }
+
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(applySearch, 300);
+        });
+
+        // Pagination Switch
+        btnPaginate.addEventListener('click', () => {
+            isPagination = true;
+            localStorage.setItem(STORAGE_KEY_PAGINATION, 'paginate');
+            updatePaginationButtons();
+            currentPage = 1;
+            renderTable();
+        });
+
+        btnUnpaginate.addEventListener('click', () => {
+            isPagination = false;
+            localStorage.setItem(STORAGE_KEY_PAGINATION, 'unpaginate');
+            updatePaginationButtons();
+            renderTable();
+        });
+
+        function updatePaginationButtons() {
+            if (isPagination) {
+                btnPaginate.classList.add('active');
+                btnUnpaginate.classList.remove('active');
+            } else {
+                btnPaginate.classList.remove('active');
+                btnUnpaginate.classList.add('active');
+            }
+        }
+
+        // Page Nav
+        btnPrev.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        });
+
+        btnNext.addEventListener('click', () => {
+            const totalPages = Math.ceil(displayData.length / ITEMS_PER_PAGE);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        });
+
+        // Sorting
+        thId.addEventListener('click', () => {
+            if (sortCol === 'id') sortAsc = !sortAsc;
+            else { sortCol = 'id'; sortAsc = true; }
             applySort();
         });
-    });
-    const modalClose = document.getElementById('modalClose');
-    const modalOverlay = document.getElementById('modalOverlay');
-    if (modalClose) modalClose.addEventListener('click', hideModal);
-    if (modalOverlay) modalOverlay.addEventListener('click', hideModal);
-    const tbody = document.getElementById('wordTbody');
-    if (tbody) {
-        tbody.addEventListener('click', function(e) {
-            const target = e.target;
-            if (!target) return;
-            if (target.classList.contains('fav-btn')) {
-                const word = target.getAttribute('data-word');
-                toggleFavorite(word, target);
-            } else if (target.classList.contains('forms-text') && !target.classList.contains('empty')) {
-                try {
-                    if (target.scrollWidth > target.clientWidth) {
-                        showModal(target.textContent);
-                    }
-                } catch (e2) {
-                    showModal(target.textContent);
-                }
-            }
+
+        thWord.addEventListener('click', () => {
+            if (sortCol === 'word') sortAsc = !sortAsc;
+            else { sortCol = 'word'; sortAsc = true; }
+            applySort();
         });
-    }
-    document.addEventListener('keydown', function(e) {
-        if (e.key === '/') {
-            const active = document.activeElement;
-            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
-            e.preventDefault();
-            const si = document.getElementById('searchInput');
-            if (si) si.focus();
-        } else if (e.key === 'Escape') {
-            const modal = document.getElementById('modal');
-            if (modal && modal.style.display !== 'none') {
-                hideModal();
+
+        // Marking Words
+        function toggleMarkWord(word, btnElement) {
+            if (markedWords.has(word)) {
+                markedWords.delete(word);
+                btnElement.classList.remove('marked');
+            } else {
+                markedWords.add(word);
+                btnElement.classList.add('marked');
+            }
+            saveMarks(markedWords);
+        }
+
+        function loadMarks() {
+            try {
+                const str = localStorage.getItem(STORAGE_KEY_MARKS);
+                return str ? new Set(JSON.parse(str)) : new Set();
+            } catch (e) {
+                console.error("Failed to load marks", e);
+                return new Set();
             }
         }
-    });
-}
 
-/* ============ 初始化 ============ */
-async function init() {
-    showLoading();
-    try {
-        restoreTheme();
-        restorePagedMode();
-        allData = await loadData();
-        filteredData = allData.slice();
-        bindEvents();
-        applySort();
-    } catch (e) {
-        console.error('初始化失败:', e);
-        allData = [];
-        filteredData = [];
-        try { bindEvents(); } catch (ee) { console.warn('事件绑定失败:', ee); }
-        try { renderTable(); } catch (ee) { console.warn('渲染失败:', ee); }
-    } finally {
-        hideLoading();
-    }
-}
+        function saveMarks(set) {
+            try {
+                localStorage.setItem(STORAGE_KEY_MARKS, JSON.stringify([...set]));
+            } catch (e) {
+                console.error("Failed to save marks", e);
+            }
+        }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
-</script>
+        // Export
+        btnExport.addEventListener('click', exportWords);
+
+        function exportWords() {
+            if (markedWords.size === 0) {
+                showToast("无已标记的生词");
+                return;
+            }
+
+            let csvContent = "\uFEFF序号,单词,相关词形\n"; // Add BOM for Excel
+            markedWords.forEach(word => {
+                const item = allData.find(d => d.word === word);
+                if (item) {
+                    // Escape commas in fields to keep CSV valid
+                    const safeWord = item.word.includes(',') ? `"${item.word}"` : item.word;
+                    const safeForms = item.forms.includes(',') ? `"${item.forms}"` : item.forms;
+                    csvContent += `${item.id},${safeWord},${safeForms}\n`;
+                }
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "ngsl_marked_words.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.textContent = msg;
+            toast.style.cssText = `
+                position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+                background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px;
+                border-radius: 4px; z-index: 1000; font-size: 14px; opacity: 0;
+                transition: opacity 0.3s;
+            `;
+            document.body.appendChild(toast);
+            // Force reflow
+            void toast.offsetWidth;
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        // Theme Toggle
+        function loadSettings() {
+            const theme = localStorage.getItem(STORAGE_KEY_THEME);
+            const pagMode = localStorage.getItem(STORAGE_KEY_PAGINATION);
+            
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                isDarkMode = true;
+            }
+            
+            if (pagMode === 'unpaginate') {
+                isPagination = false;
+            } else {
+                isPagination = true;
+            }
+            updatePaginationButtons();
+        }
+
+        btnTheme.addEventListener('click', toggleTheme);
+
+        function toggleTheme() {
+            if (isDarkMode) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem(STORAGE_KEY_THEME, 'light');
+                isDarkMode = false;
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem(STORAGE_KEY_THEME, 'dark');
+                isDarkMode = true;
+            }
+        }
+
+        // Modal
+        function showModal(content) {
+            if (!content) return;
+            modalBody.textContent = content;
+            modal.classList.add('open');
+        }
+
+        function hideModal() {
+            modal.classList.remove('open');
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) hideModal();
+        });
+
+        // Utils
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== searchInput) {
+                e.preventDefault();
+                searchInput.focus();
+            }
+            if (e.key === 'Escape') {
+                hideModal();
+            }
+        });
+
+        // Start
+        init();
+
+    </script>
 </body>
 </html>
